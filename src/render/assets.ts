@@ -3,7 +3,8 @@
  * SVG icon textures. Every lookup has a procedural canvas fallback so the game still renders
  * if a file is missing; canvas-backed textures survive WebGL context loss.
  */
-import { Assets, CanvasSource, Spritesheet, Texture } from 'pixi.js';
+import type { Spritesheet } from 'pixi.js';
+import { Assets, CanvasSource, Texture } from 'pixi.js';
 import { FONT_DISPLAY, INK, INKS, INKS_DARK, LEAD_GREY, BLIND_FACE, JAM_DARK, PAPER, hex } from '../theme';
 
 export class GameAssets {
@@ -21,7 +22,9 @@ export class GameAssets {
   private async loadFont(): Promise<void> {
     if (typeof document === 'undefined' || !('fonts' in document)) return;
     try {
-      const face = new FontFace(FONT_DISPLAY, `url(${this.base}fonts/press-display.otf)`, { display: 'block' });
+      const face = new FontFace(FONT_DISPLAY, `url(${this.base}fonts/press-display.otf)`, {
+        display: 'block',
+      });
       document.fonts.add(await face.load());
       await document.fonts.load(`48px "${FONT_DISPLAY}"`);
     } catch (e) {
@@ -203,7 +206,10 @@ export class GameAssets {
       return this.canvasTexture(name, size, size, (g, w) => {
         const grad = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
         grad.addColorStop(0, 'rgba(255,255,255,1)');
-        grad.addColorStop(name === 'glow_soft' ? 1 : 0.7, name === 'glow_soft' ? 'rgba(255,255,255,0)' : 'rgba(255,255,255,0.95)');
+        grad.addColorStop(
+          name === 'glow_soft' ? 1 : 0.7,
+          name === 'glow_soft' ? 'rgba(255,255,255,0)' : 'rgba(255,255,255,0.95)',
+        );
         grad.addColorStop(1, 'rgba(255,255,255,0)');
         g.fillStyle = grad;
         g.fillRect(0, 0, w, w);

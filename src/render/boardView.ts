@@ -103,7 +103,10 @@ export class BoardView extends Container {
     c.alpha = 1;
     if (v === EMPTY) return;
     c.set(v, variantFor(i, this.salt), this.cell, this.style);
-    c.position.set((i % BOARD_SIZE) * this.cell + this.cell / 2, ((i / BOARD_SIZE) | 0) * this.cell + this.cell / 2);
+    c.position.set(
+      (i % BOARD_SIZE) * this.cell + this.cell / 2,
+      ((i / BOARD_SIZE) | 0) * this.cell + this.cell / 2,
+    );
   }
 
   refreshAll(): void {
@@ -158,7 +161,8 @@ export class BoardView extends Container {
     // Dashed ink outline around each ghost cell (contrast rule: never rely on colour alone).
     const g = this.ghostOutline;
     g.clear();
-    for (const [cx, cy] of shape.cells) dashedRect(g, (x + cx) * cs + 2, (y + cy) * cs + 2, cs - 4, cs - 4, 5, 4);
+    for (const [cx, cy] of shape.cells)
+      dashedRect(g, (x + cx) * cs + 2, (y + cy) * cs + 2, cs - 4, cs - 4, 5, 4);
     g.stroke({ width: 2, color: INK, alpha: 0.9 });
     this.ghost.visible = true;
 
@@ -169,8 +173,10 @@ export class BoardView extends Container {
       const tint = piece.ink < 5 ? (INKS[piece.ink] as number) : INK;
       for (const r of lines.rows) h.rect(0, r * cs, size, cs).fill({ color: tint, alpha: 0.18 });
       for (const c of lines.cols) h.rect(c * cs, 0, cs, size).fill({ color: tint, alpha: 0.18 });
-      for (const r of lines.rows) h.rect(1, r * cs + 1, size - 2, cs - 2).stroke({ width: 2, color: INK, alpha: 0.95 });
-      for (const c of lines.cols) h.rect(c * cs + 1, 1, cs - 2, size - 2).stroke({ width: 2, color: INK, alpha: 0.95 });
+      for (const r of lines.rows)
+        h.rect(1, r * cs + 1, size - 2, cs - 2).stroke({ width: 2, color: INK, alpha: 0.95 });
+      for (const c of lines.cols)
+        h.rect(c * cs + 1, 1, cs - 2, size - 2).stroke({ width: 2, color: INK, alpha: 0.95 });
     }
     this.animator.request();
   }
@@ -193,13 +199,23 @@ export class BoardView extends Container {
     s.rotation = Math.random() * Math.PI * 2;
     s.position.set(x - this.rect.x, y - this.rect.y);
     this.stains.addChild(s);
-    void this.animator.tween(s, { alpha: 0 }, reduceMotion ? 600 : 2000, { delay: 200, ease: ease.inQuad }).then(() => {
-      s.destroy();
-    });
+    void this.animator
+      .tween(s, { alpha: 0 }, reduceMotion ? 600 : 2000, { delay: 200, ease: ease.inQuad })
+      .then(() => {
+        s.destroy();
+      });
   }
 }
 
-function dashedRect(g: Graphics, x: number, y: number, w: number, h: number, dash: number, gap: number): void {
+function dashedRect(
+  g: Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  dash: number,
+  gap: number,
+): void {
   const edge = (x0: number, y0: number, x1: number, y1: number) => {
     const len = Math.hypot(x1 - x0, y1 - y0);
     const dx = (x1 - x0) / len;

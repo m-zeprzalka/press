@@ -19,7 +19,12 @@ const dist = (fx: number, fy: number, p: GridPos) => Math.hypot(fx - p.x, fy - p
  * @param valid   whether the piece can be placed at an integer position
  * @param prev    the currently shown ghost position (or null)
  */
-export function snap(fx: number, fy: number, valid: (x: number, y: number) => boolean, prev: GridPos | null): GridPos | null {
+export function snap(
+  fx: number,
+  fy: number,
+  valid: (x: number, y: number) => boolean,
+  prev: GridPos | null,
+): GridPos | null {
   const rx = Math.round(fx);
   const ry = Math.round(fy);
   if (valid(rx, ry)) return { x: rx, y: ry };

@@ -16,7 +16,8 @@ import { TrayView } from './trayView';
 export type DeviceTier = 'low' | 'mid' | 'high';
 
 export function detectTier(): DeviceTier {
-  const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & { deviceMemory?: number }) : undefined;
+  const nav =
+    typeof navigator !== 'undefined' ? (navigator as Navigator & { deviceMemory?: number }) : undefined;
   const cores = nav?.hardwareConcurrency ?? 4;
   const mem = nav?.deviceMemory ?? 4;
   if (cores <= 4 || mem <= 3) return 'low';

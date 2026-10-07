@@ -77,7 +77,8 @@ async function boot(): Promise<void> {
       loadMeta: () => platform.saves.loadMeta(),
       saveMeta: (m) => void platform.saves.saveMeta(m),
       loadJSON: (key, fb) => platform.saves.loadJSON(key, fb),
-      saveJSON: (key, v) => void (v === null ? platform.saves.removeJSON(key) : platform.saves.saveJSON(key, v)),
+      saveJSON: (key, v) =>
+        void (v === null ? platform.saves.removeJSON(key) : platform.saves.saveJSON(key, v)),
       flush: () => platform.saves.flush(),
     },
     ads: {
@@ -162,7 +163,9 @@ async function boot(): Promise<void> {
     controller.relayout();
     if (native && scene.layout) {
       const tr = scene.layout.tray;
-      void PressSystem.setGestureExclusion({ rects: [{ x: 0, y: tr.y, w: scene.layout.width, h: tr.h }] }).catch(() => undefined);
+      void PressSystem.setGestureExclusion({
+        rects: [{ x: 0, y: tr.y, w: scene.layout.width, h: tr.h }],
+      }).catch(() => undefined);
     }
   });
 

@@ -13,7 +13,7 @@ export function plateName(id: MatrixId): string {
 /** Description with the plate's current values (scaling counters, Stencil's current factor). */
 export function plateDesc(id: MatrixId, inst?: MatrixInstance | null, ownedCount = 0): string {
   const def = matrixDef(id);
-  const params: Record<string, number | string> = { ...def.params(inst?.state ?? (def.initState?.() ?? {})) };
+  const params: Record<string, number | string> = { ...def.params(inst?.state ?? def.initState?.() ?? {}) };
   if (id === 'stencil') {
     const empty = Math.max(0, BALANCE.slots - Math.max(1, ownedCount));
     params.now = fmtMult(1 + MX.stencilPerEmpty * empty);

@@ -65,15 +65,37 @@ export class HudView extends Container {
   private shownProgress = 0;
   private sheets = { left: 0, used: 0, base: 20 };
   private streak = { value: 0, dry: 0, grace: 3, wet: false };
-  private labels = { quota: 'QUOTA', sheets: 'SHEETS', streak: 'STREAK', prints: 'PRINTS', mult: 'MULT', edition: 'EDITION 1' };
+  private labels = {
+    quota: 'QUOTA',
+    sheets: 'SHEETS',
+    streak: 'STREAK',
+    prints: 'PRINTS',
+    mult: 'MULT',
+    edition: 'EDITION 1',
+  };
 
   constructor(private readonly animator: Animator) {
     super();
     this.chip.addChild(this.chipBg, this.chipIcon, this.chipText);
     this.addChild(this.edition, this.pips, this.chip);
     this.addChild(this.quotaLabel, this.quotaBar, this.quotaValue);
-    this.addChild(this.sheetsLabel, this.sheetsMeter, this.sheetsValue, this.streakLabel, this.streakValue, this.drops);
-    this.counter.addChild(this.printsBox, this.multBox, this.printsLabel, this.multLabel, this.printsValue, this.multValue, this.times);
+    this.addChild(
+      this.sheetsLabel,
+      this.sheetsMeter,
+      this.sheetsValue,
+      this.streakLabel,
+      this.streakValue,
+      this.drops,
+    );
+    this.counter.addChild(
+      this.printsBox,
+      this.multBox,
+      this.printsLabel,
+      this.multLabel,
+      this.printsValue,
+      this.multValue,
+      this.times,
+    );
     this.addChild(this.counter);
     this.times.text = '×';
   }
@@ -125,7 +147,14 @@ export class HudView extends Container {
       this.streakValue.position.set(r.status.x + r.status.w - 60, sy);
       this.streakLabel.anchor.set(1, 0.5);
       this.streakLabel.position.set(this.streakValue.x - this.streakValue.width - 8, sy);
-      for (const o of [this.sheetsLabel, this.sheetsValue, this.sheetsMeter, this.streakLabel, this.streakValue, this.drops])
+      for (const o of [
+        this.sheetsLabel,
+        this.sheetsValue,
+        this.sheetsMeter,
+        this.streakLabel,
+        this.streakValue,
+        this.drops,
+      ])
         o.visible = true;
     } else {
       // Compact: sheets value under the quota label, streak drops at the right of the header.
@@ -194,7 +223,10 @@ export class HudView extends Container {
     const target = which === 'p' ? this.printsValue : this.multValue;
     const s = target.scale.x;
     target.scale.set(s * (which === 'x' ? 1.35 : 1.18));
-    void this.animator.tween(target.scale, { x: s, y: s }, which === 'x' ? 220 : 120, { ease: ease.outBack, key: target.scale });
+    void this.animator.tween(target.scale, { x: s, y: s }, which === 'x' ? 220 : 120, {
+      ease: ease.outBack,
+      key: target.scale,
+    });
   }
 
   /** Global position of the quota bar's fill end (target for flying numbers). */
@@ -341,7 +373,10 @@ export class HudView extends Container {
       const x = -i * 13;
       const full = !wet && value > 0 && i < n - dry;
       // Ink drop: circle + point.
-      g.moveTo(x, -9).lineTo(x - 4, -2).lineTo(x + 4, -2).closePath();
+      g.moveTo(x, -9)
+        .lineTo(x - 4, -2)
+        .lineTo(x + 4, -2)
+        .closePath();
       g.circle(x, 1, 4.5);
       g.fill({ color: full ? BLUE : PAPER });
       g.circle(x, 1, 4.5).stroke({ width: 1.5, color: INK });
@@ -357,6 +392,9 @@ export class HudView extends Container {
   bumpStreak(): void {
     const s = this.streakValue.scale.x;
     this.streakValue.scale.set(1.3);
-    void this.animator.tween(this.streakValue.scale, { x: s, y: s }, 200, { ease: ease.outBack, key: this.streakValue.scale });
+    void this.animator.tween(this.streakValue.scale, { x: s, y: s }, 200, {
+      ease: ease.outBack,
+      key: this.streakValue.scale,
+    });
   }
 }

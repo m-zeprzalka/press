@@ -116,7 +116,15 @@ export class InputController {
     if (card !== null) {
       this.activePointer = e.pointerId;
       this.scene.canvas.setPointerCapture(e.pointerId);
-      this.rackDrag = { pointerId: e.pointerId, slot: card, startX: x, startY: y, startT: performance.now(), reordering: false, target: card };
+      this.rackDrag = {
+        pointerId: e.pointerId,
+        slot: card,
+        startX: x,
+        startY: y,
+        startT: performance.now(),
+        reordering: false,
+        target: card,
+      };
       return;
     }
     if (!this.cb.canInteract()) return;
@@ -217,7 +225,8 @@ export class InputController {
     if (e.pointerId !== this.activePointer) return;
     const { x, y } = this.local(e);
     if (this.drag) {
-      if (!this.drag.moved && Math.hypot(x - this.drag.startX, y - this.drag.startY) > TAP_SLOP) this.drag.moved = true;
+      if (!this.drag.moved && Math.hypot(x - this.drag.startX, y - this.drag.startY) > TAP_SLOP)
+        this.drag.moved = true;
       this.updateGhost(x, y);
       return;
     }
@@ -344,7 +353,9 @@ export class InputController {
     // Second tap inside the ghost places the piece.
     if (sel.ghost) {
       const shape = scene.tray.pieceView(sel.slot)?.shape;
-      const inside = shape?.cells.some(([px, py]) => px + (sel.ghost as GridPos).x === cx && py + (sel.ghost as GridPos).y === cy);
+      const inside = shape?.cells.some(
+        ([px, py]) => px + (sel.ghost as GridPos).x === cx && py + (sel.ghost as GridPos).y === cy,
+      );
       if (inside) {
         this.confirmTap();
         return;

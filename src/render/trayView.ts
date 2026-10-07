@@ -43,7 +43,10 @@ export class TrayView extends Container {
 
   private makeSlot(rect: Rect): Slot {
     const frame = new Graphics();
-    const note = new Text({ text: '', style: { fontFamily: FONT_DISPLAY, fontSize: 12, fill: INK, letterSpacing: 1 } });
+    const note = new Text({
+      text: '',
+      style: { fontFamily: FONT_DISPLAY, fontSize: 12, fill: INK, letterSpacing: 1 },
+    });
     note.alpha = 0.55;
     note.anchor.set(0.5);
     this.addChild(frame, note);
@@ -79,7 +82,8 @@ export class TrayView extends Container {
       g.roundRect(r.x, r.y, r.w, r.h, 10).fill({ color: 0xffffff, alpha: 0.25 });
       g.roundRect(r.x, r.y, r.w, r.h, 10).stroke({ width: 2, color: INK, alpha: 0.55 });
     }
-    if (selected) g.roundRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6, 10).stroke({ width: 3, color: INK, alpha: 1 });
+    if (selected)
+      g.roundRect(r.x + 3, r.y + 3, r.w - 6, r.h - 6, 10).stroke({ width: 3, color: INK, alpha: 1 });
     s.note.position.set(r.x + r.w / 2, r.y + r.h / 2);
   }
 

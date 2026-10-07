@@ -34,7 +34,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tips: true,
 };
 
-const clamp01 = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : d);
+const clamp01 = (v: unknown, d: number) =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : d;
 
 export function normalizeSettings(raw: unknown): Settings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Settings>;
@@ -47,7 +48,10 @@ export function normalizeSettings(raw: unknown): Settings {
     haptics: typeof r.haptics === 'boolean' ? r.haptics : d.haptics,
     symbols: typeof r.symbols === 'boolean' ? r.symbols : d.symbols,
     reduceMotion: typeof r.reduceMotion === 'boolean' ? r.reduceMotion : null,
-    counterSpeed: r.counterSpeed === 'fast' || r.counterSpeed === 'instant' || r.counterSpeed === 'normal' ? r.counterSpeed : d.counterSpeed,
+    counterSpeed:
+      r.counterSpeed === 'fast' || r.counterSpeed === 'instant' || r.counterSpeed === 'normal'
+        ? r.counterSpeed
+        : d.counterSpeed,
     controls: r.controls === 'tap' ? 'tap' : 'drag',
     fullscreen: typeof r.fullscreen === 'boolean' ? r.fullscreen : d.fullscreen,
     tips: typeof r.tips === 'boolean' ? r.tips : d.tips,

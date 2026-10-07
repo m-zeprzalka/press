@@ -384,6 +384,7 @@ export const EN: Record<string, string> = {
   'tip.drop_dried': 'Dry placement: the streak dries up after 3',
   'tip.low_sheets': 'Low on sheets? Sell a plate for more',
   'tip.first_loss': 'One Reprint per run can save you',
+  'tip.stash_escape': 'Nothing fits — drop the last piece on the Type Case for a fresh tray',
   'tip.drag_hint': 'Drag onto the forme',
 
   // Misc
@@ -393,7 +394,8 @@ export const EN: Record<string, string> = {
   'window.too_small': 'Make the window bigger',
   'ad.test': 'Test ad',
   'ad.unavailable': 'Ad unavailable — try again',
-  'sr.print': 'Print: {lines, plural, one {# line} other {# lines}}, {score}. Quota {progress} of {quota}. {sheets, plural, one {# sheet} other {# sheets}} left.',
+  'sr.print':
+    'Print: {lines, plural, one {# line} other {# lines}}, {score}. Quota {progress} of {quota}. {sheets, plural, one {# sheet} other {# sheets}} left.',
   'sr.cell': 'Row {r}, column {c}: {state}',
   'sr.empty': 'empty',
 };

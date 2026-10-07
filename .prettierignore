@@ -9,3 +9,5 @@ docs/balance-report.md
 test-results
 playwright-report
 *.md
+.dev
+scripts/textures/preview

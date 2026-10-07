@@ -133,7 +133,8 @@ export class FxLayer extends Container {
           void this.animator.tween(g, { alpha: 0 }, rm ? 120 : 220);
         }
         if (!rm && intensity >= 3) this.shake(Math.min(6, 2 + intensity));
-        for (const p of platens) void this.animator.tween(p, { alpha: 0 }, rm ? 120 : 160, { delay: 40 }).then(() => p.destroy());
+        for (const p of platens)
+          void this.animator.tween(p, { alpha: 0 }, rm ? 120 : 160, { delay: 40 }).then(() => p.destroy());
         // Cells → printed sheets fly off; ink splashes.
         copies.forEach((c, k) => {
           const v = cleared[k]?.v ?? 0;
@@ -142,16 +143,24 @@ export class FxLayer extends Container {
             return;
           }
           const dir = Math.random() < 0.5 ? -1 : 1;
-          void this.animator.tween(
-            c,
-            { alpha: 0, rotation: dir * (0.6 + Math.random()), y: c.y - cs * (0.6 + Math.random()), x: c.x + dir * cs * Math.random() },
-            260 + Math.random() * 140,
-            { delay: (k % 8) * 12, ease: ease.outCubic },
-          ).then(() => c.destroy({ children: true }));
+          void this.animator
+            .tween(
+              c,
+              {
+                alpha: 0,
+                rotation: dir * (0.6 + Math.random()),
+                y: c.y - cs * (0.6 + Math.random()),
+                x: c.x + dir * cs * Math.random(),
+              },
+              260 + Math.random() * 140,
+              { delay: (k % 8) * 12, ease: ease.outCubic },
+            )
+            .then(() => c.destroy({ children: true }));
           void this.animator.tween(c.scale, { x: 0.6, y: 0.6 }, 300, { delay: (k % 8) * 12 });
           if (isInk(v)) this.splash(c.x, c.y, inkColor(v), cs, intensity);
           if (k % 3 === 0) this.fleck(c.x, c.y);
-          if (k % 4 === 0 && isInk(v)) board.addStain(c.x, c.y, INKS[v] as number, cs * 1.6, `splat_${k % 4}`, rm);
+          if (k % 4 === 0 && isInk(v))
+            board.addStain(c.x, c.y, INKS[v] as number, cs * 1.6, `splat_${k % 4}`, rm);
         });
         void this.animator.wait(rm ? 140 : 320).then(resolve);
       });
@@ -159,7 +168,17 @@ export class FxLayer extends Container {
     return done;
   }
 
-  private spawn(frame: string, x: number, y: number, tint: number, size: number, vx: number, vy: number, life: number, gravity: number): void {
+  private spawn(
+    frame: string,
+    x: number,
+    y: number,
+    tint: number,
+    size: number,
+    vx: number,
+    vy: number,
+    life: number,
+    gravity: number,
+  ): void {
     if (this.particles.length >= this.opts.maxParticles) return;
     const s = new Sprite(this.assets.tex(frame));
     s.anchor.set(0.5);
@@ -178,12 +197,32 @@ export class FxLayer extends Container {
     for (let k = 0; k < n; k++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 120 + Math.random() * 260 * (1 + intensity * 0.15);
-      this.spawn(`drop_${k % 6}`, x, y, color, cs * (0.18 + Math.random() * 0.3), Math.cos(a) * sp, Math.sin(a) * sp - 120, 520 + Math.random() * 300, 900);
+      this.spawn(
+        `drop_${k % 6}`,
+        x,
+        y,
+        color,
+        cs * (0.18 + Math.random() * 0.3),
+        Math.cos(a) * sp,
+        Math.sin(a) * sp - 120,
+        520 + Math.random() * 300,
+        900,
+      );
     }
   }
 
   private fleck(x: number, y: number): void {
-    this.spawn(`fleck_${Math.floor(Math.random() * 4)}`, x, y, PAPER, 10 + Math.random() * 10, (Math.random() - 0.5) * 220, -180 - Math.random() * 200, 700, 600);
+    this.spawn(
+      `fleck_${Math.floor(Math.random() * 4)}`,
+      x,
+      y,
+      PAPER,
+      10 + Math.random() * 10,
+      (Math.random() - 0.5) * 220,
+      -180 - Math.random() * 200,
+      700,
+      600,
+    );
   }
 
   private stepParticles = (dt: number): boolean => {
@@ -224,14 +263,31 @@ export class FxLayer extends Container {
         this.stopShake = null;
         return false;
       }
-      target.position.set((Math.random() - 0.5) * 2 * this.shakeAmp, (Math.random() - 0.5) * 2 * this.shakeAmp);
+      target.position.set(
+        (Math.random() - 0.5) * 2 * this.shakeAmp,
+        (Math.random() - 0.5) * 2 * this.shakeAmp,
+      );
       return true;
     });
   }
 
   /** A number that pops at `from` and flies to `to`. */
-  flyNumber(text: string, from: { x: number; y: number }, to: { x: number; y: number }, color = INK): Promise<void> {
-    const t = new Text({ text, style: { fontFamily: FONT_DISPLAY, fontSize: 30, fill: color, stroke: { color: PAPER, width: 5 }, padding: 6 } });
+  flyNumber(
+    text: string,
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    color = INK,
+  ): Promise<void> {
+    const t = new Text({
+      text,
+      style: {
+        fontFamily: FONT_DISPLAY,
+        fontSize: 30,
+        fill: color,
+        stroke: { color: PAPER, width: 5 },
+        padding: 6,
+      },
+    });
     t.anchor.set(0.5);
     t.position.set(from.x, from.y);
     t.scale.set(0.6);
@@ -257,7 +313,10 @@ export class FxLayer extends Container {
     const ring = new Sprite(this.assets.tex('stamp_ring'));
     ring.anchor.set(0.5);
     ring.tint = color;
-    const label = new Text({ text, style: { fontFamily: FONT_DISPLAY, fontSize: 40 * size, fill: color, letterSpacing: 3, padding: 6 } });
+    const label = new Text({
+      text,
+      style: { fontFamily: FONT_DISPLAY, fontSize: 40 * size, fill: color, letterSpacing: 3, padding: 6 },
+    });
     label.anchor.set(0.5);
     ring.width = label.width + 60 * size;
     ring.height = label.height + 34 * size;
@@ -298,4 +357,3 @@ export class FxLayer extends Container {
     this.flashLayer.clear();
   }
 }
-

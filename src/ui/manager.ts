@@ -50,7 +50,11 @@ export class UiManager {
       root = h('div', { class: 'screen', 'data-layer': id }, content);
     } else {
       const scrim = h('div', { class: 'scrim' });
-      const panel = h('div', { class: kind === 'sheet' ? 'sheet' : 'dialog', role: 'dialog', 'aria-modal': 'true' }, content);
+      const panel = h(
+        'div',
+        { class: kind === 'sheet' ? 'sheet' : 'dialog', role: 'dialog', 'aria-modal': 'true' },
+        content,
+      );
       root = h('div', { class: 'layer', 'data-layer': id, style: 'position:absolute;inset:0' }, scrim, panel);
       if (opts.dismissible !== false) scrim.addEventListener('click', () => this.close(id));
     }
@@ -101,7 +105,12 @@ export class UiManager {
       const noBtn = h('button', { class: 'btn', type: 'button' }, no);
       yesBtn.addEventListener('click', () => finish(true));
       noBtn.addEventListener('click', () => finish(false));
-      const body = h('div', { class: 'column' }, h('p', { style: 'margin:0;font-size:1.05rem' }, text), h('div', { class: 'row' }, noBtn, yesBtn));
+      const body = h(
+        'div',
+        { class: 'column' },
+        h('p', { style: 'margin:0;font-size:1.05rem' }, text),
+        h('div', { class: 'row' }, noBtn, yesBtn),
+      );
       this.show('confirm', body, {
         kind: 'dialog',
         onBack: () => {

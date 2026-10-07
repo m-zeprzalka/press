@@ -27,7 +27,14 @@ import { detectLang, fmtInt, setLang, t } from '../ui/i18n';
 import { modifierIcon, plateIcon, uiIcon } from '../ui/iconset';
 import type { UiManager } from '../ui/manager';
 import { modifierName, plateBadge } from '../ui/plateText';
-import { buildCollection, buildDaily, buildNoAds, buildSettings, buildStats, buildTitle } from '../ui/screens/menus';
+import {
+  buildCollection,
+  buildDaily,
+  buildNoAds,
+  buildSettings,
+  buildStats,
+  buildTitle,
+} from '../ui/screens/menus';
 import {
   buildLastChance,
   buildOffer,
@@ -70,7 +77,10 @@ export class GameController {
   private placeBtn: HTMLButtonElement | null = null;
   private tutorial: Tutorial | null = null;
   private tipShownThisContract = false;
-  private pendingUnlocks: { achievements: AchievementId[]; unlocks: MatrixId[] } = { achievements: [], unlocks: [] };
+  private pendingUnlocks: { achievements: AchievementId[]; unlocks: MatrixId[] } = {
+    achievements: [],
+    unlocks: [],
+  };
   private recordBefore = 0;
   private icons = new Map<MatrixId, Texture>();
   private modifierTextures = new Map<string, Texture>();
@@ -131,7 +141,9 @@ export class GameController {
     this.applySettings(false);
     await this.loadPlateTextures();
     const session = this.s.lifecycle.sessionIndex;
-    void this.s.iap.refresh().then(() => this.s.ads.start({ sessionIndex: session, noAds: this.s.iap.entitled }));
+    void this.s.iap
+      .refresh()
+      .then(() => this.s.ads.start({ sessionIndex: session, noAds: this.s.iap.entitled }));
     this.s.iap.onChange(() => this.refreshTitleIfShown());
     this.s.lifecycle.onPause(() => {
       this.input.cancelAll();
@@ -277,7 +289,10 @@ export class GameController {
         },
         privacyOptions: () => void this.s.ads.showPrivacyOptions(),
         policy: () => this.s.openUrl(PRIVACY_POLICY_URL),
-        restore: () => void this.s.iap.restore().then(() => toast(this.s.iap.entitled ? t('noads.owned') : t('noads.restore'))),
+        restore: () =>
+          void this.s.iap
+            .restore()
+            .then(() => toast(this.s.iap.entitled ? t('noads.owned') : t('noads.restore'))),
         tutorial: () => {
           this.ui.close('settings');
           if (!fromGame) this.startTutorial();
@@ -298,7 +313,10 @@ export class GameController {
   }
 
   showCollection(): void {
-    this.ui.show('collection', buildCollection(new Set(unlockedPool(this.meta)), { back: () => this.ui.close('collection') }));
+    this.ui.show(
+      'collection',
+      buildCollection(new Set(unlockedPool(this.meta)), { back: () => this.ui.close('collection') }),
+    );
   }
 
   async showNoAds(): Promise<void> {
@@ -307,7 +325,13 @@ export class GameController {
       this.ui.show(
         'noads',
         buildNoAds(
-          { available: this.s.iap.available, entitled: this.s.iap.entitled, pending: this.s.iap.pending, price: product?.price ?? null, error },
+          {
+            available: this.s.iap.available,
+            entitled: this.s.iap.entitled,
+            pending: this.s.iap.pending,
+            price: product?.price ?? null,
+            error,
+          },
           {
             buy: async () => {
               const r = await this.s.iap.purchase();
@@ -383,10 +407,17 @@ export class GameController {
       pool = dailyPool();
       startPlates = [dailyStartPlate(date)];
     } else {
-      seed = this.seedOverride ?? `run-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+      seed =
+        this.seedOverride ?? `run-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
       pool = unlockedPool(this.meta);
     }
-    const { engine, events } = RunEngine.create({ seed, mode: kind === 'daily' ? 'daily' : 'standard', dailyDate: date, pool, startPlates });
+    const { engine, events } = RunEngine.create({
+      seed,
+      mode: kind === 'daily' ? 'daily' : 'standard',
+      dailyDate: date,
+      pool,
+      startPlates,
+    });
     this.engine = engine;
     this.runKind = kind;
     this.rewardedThisRun = false;
@@ -486,7 +517,8 @@ export class GameController {
         this.s.audio.play('unlock');
         this.s.saves.saveMeta(this.meta);
       }
-      if (events.some((e) => e.type === 'contract_won' || e.type === 'run_over')) this.s.saves.saveMeta(this.meta);
+      if (events.some((e) => e.type === 'contract_won' || e.type === 'run_over'))
+        this.s.saves.saveMeta(this.meta);
       this.saveRun();
     }
     for (const e of events) {
@@ -506,7 +538,16 @@ export class GameController {
     this.tutorial?.onEvents(events);
     if (events.some((e) => e.type === 'contract_started')) this.showBanner();
     const c = engine.state.contract;
-    if (engine.state.phase === 'playing' && c.sheetsLeft <= 3 && c.progress < c.spec.quota && engine.sellablePlates().length > 0) this.maybeTip('tip.low_sheets');
+    if (
+      engine.state.phase === 'playing' &&
+      c.sheetsLeft <= 3 &&
+      c.progress < c.spec.quota &&
+      engine.sellablePlates().length > 0
+    )
+      this.maybeTip('tip.low_sheets');
+    // Nothing fits, but the run is alive: the Type Case escape is the only move — always say so.
+    if (engine.state.phase === 'playing' && !this.tutorial?.sandbox && this.onlyStashEscape(engine))
+      this.showTip('tip.stash_escape', false);
     this.afterAction();
   }
 
@@ -556,7 +597,9 @@ export class GameController {
     if (!engine || !offer) return;
     const s = engine.state;
     // After a special job the next edition begins: reveal its special rule where the pick happens.
-    const nextSpecial = isSpecialIndex(s.contractIndex) ? engine.specialFor(editionOf(s.contractIndex + 1)) : null;
+    const nextSpecial = isSpecialIndex(s.contractIndex)
+      ? engine.specialFor(editionOf(s.contractIndex + 1))
+      : null;
     if (s.plates.length >= BALANCE.slots) this.maybeTip('tip.full_rack');
     const content = buildOffer(
       {
@@ -634,7 +677,11 @@ export class GameController {
           sold = true;
           this.ui.close('plate');
           this.sell(inst.uid);
-          toast(t('plate.sell', { n: matrixDef(inst.id).sellValue ?? BALANCE.sellSheets[matrixDef(inst.id).rarity] }));
+          toast(
+            t('plate.sell', {
+              n: matrixDef(inst.id).sellValue ?? BALANCE.sellSheets[matrixDef(inst.id).rarity],
+            }),
+          );
         },
         move: (dir) => {
           const to = slot + dir;
@@ -681,11 +728,21 @@ export class GameController {
     const iconId = upcoming[0]?.id;
     const apply = (icon: Texture | null) =>
       this.scene.hud.setContract(
-        { edition, position: spec.position, special: spec.special, endless: s.endless, specialName: name, specialIcon: icon },
-        s.endless && s.contractIndex >= totalContracts() ? t('banner.endless') : t('hud.edition', { n: edition }),
+        {
+          edition,
+          position: spec.position,
+          special: spec.special,
+          endless: s.endless,
+          specialName: name,
+          specialIcon: icon,
+        },
+        s.endless && s.contractIndex >= totalContracts()
+          ? t('banner.endless')
+          : t('hud.edition', { n: edition }),
       );
     apply(iconId ? (this.modifierTextures.get(iconId) ?? null) : null);
-    if (iconId && !this.modifierTextures.has(iconId)) void this.modifierTexture(iconId).then((tex) => apply(tex));
+    if (iconId && !this.modifierTextures.has(iconId))
+      void this.modifierTexture(iconId).then((tex) => apply(tex));
     this.scene.hud.setSheets(s.contract.sheetsLeft, s.contract.sheetsUsed, spec.sheets);
   }
 
@@ -700,7 +757,12 @@ export class GameController {
     this.ui.show(
       'pause',
       buildPause(
-        { job: s.contractIndex + 1, total: totalContracts(), edition: editionOf(s.contractIndex), tutorial: Boolean(this.tutorial) },
+        {
+          job: s.contractIndex + 1,
+          total: totalContracts(),
+          edition: editionOf(s.contractIndex),
+          tutorial: Boolean(this.tutorial),
+        },
         {
           resume: () => this.ui.close('pause'),
           rules: () => this.openRules(),
@@ -725,9 +787,18 @@ export class GameController {
     const engine = this.engine;
     if (!engine) return;
     const s = engine.state;
-    this.ui.show('rules', buildRules({ spec: s.contract.spec, sheets: s.contract.sheetsGranted, lastPrint: this.presenter.lastPrint, plates: s.plates }), {
-      kind: 'sheet',
-    });
+    this.ui.show(
+      'rules',
+      buildRules({
+        spec: s.contract.spec,
+        sheets: s.contract.sheetsGranted,
+        lastPrint: this.presenter.lastPrint,
+        plates: s.plates,
+      }),
+      {
+        kind: 'sheet',
+      },
+    );
   }
 
   // ================================================================== end states
@@ -769,7 +840,12 @@ export class GameController {
     const buyer = this.s.iap.entitled;
     const mode = free ? 'free' : buyer ? 'buyer' : 'ad';
     const adAvailable = this.s.ads.available('rewarded');
-    if (mode === 'ad' && !adAvailable && !this.s.ads.available('interstitial') && this.s.lifecycle.isFirstSession) {
+    if (
+      mode === 'ad' &&
+      !adAvailable &&
+      !this.s.ads.available('interstitial') &&
+      this.s.lifecycle.isFirstSession
+    ) {
       // No ads in the first session (GDD §11.1): the reprint is not offered at all.
       this.handleEvents(engine.endRun());
       return;
@@ -795,7 +871,13 @@ export class GameController {
     this.ui.show(
       'reprint',
       buildReprint(
-        { reason, gap: Math.max(0, c.spec.quota - c.progress), mode, adAvailable, showNoAdsHint: mode === 'ad' && this.s.iap.available },
+        {
+          reason,
+          gap: Math.max(0, c.spec.quota - c.progress),
+          mode,
+          adAvailable,
+          showNoAdsHint: mode === 'ad' && this.s.iap.available,
+        },
         { accept, decline: () => void decline(), noAds: () => void this.showNoAds() },
       ),
       { kind: 'sheet', dismissible: false, onBack: () => (void decline(), true) },
@@ -820,10 +902,12 @@ export class GameController {
       }),
       {
         onBack: () => {
-          void this.ui.confirm(t('victory.confirm'), t('victory.finish'), t('victory.endless')).then((finish) => {
-            this.ui.close('victory', false);
-            this.handleEvents(finish ? engine.endRun() : engine.continueEndless());
-          });
+          void this.ui
+            .confirm(t('victory.confirm'), t('victory.finish'), t('victory.endless'))
+            .then((finish) => {
+              this.ui.close('victory', false);
+              this.handleEvents(finish ? engine.endRun() : engine.continueEndless());
+            });
           return true;
         },
       },
@@ -839,7 +923,9 @@ export class GameController {
     this.s.ads.onRunCompleted(lost);
     const daily = s.mode === 'daily' && s.dailyDate ? { grid: dailyGrid(s) } : null;
     const date = s.dailyDate;
-    const canRetryDaily = Boolean(date && (this.meta.daily[date]?.attempts ?? 0) < this.dailyAttemptsMax(date));
+    const canRetryDaily = Boolean(
+      date && (this.meta.daily[date]?.attempts ?? 0) < this.dailyAttemptsMax(date),
+    );
     this.resultsShownAt = performance.now();
     const unlocks = [...this.pendingUnlocks.unlocks];
     const achievements = this.pendingUnlocks.achievements.map((a) => t(`ach.${a}.name`));
@@ -856,9 +942,22 @@ export class GameController {
     this.ui.show(
       'results',
       buildResults(
-        { won, cause: s.lossReason, totals: s.totals, record: s.totals.score > this.recordBefore, unlocks, achievements, daily, canRetryDaily },
         {
-          newRun: () => void leave('new_run_button', () => void this.startRun(this.runKind === 'daily' ? 'normal' : 'normal')),
+          won,
+          cause: s.lossReason,
+          totals: s.totals,
+          record: s.totals.score > this.recordBefore,
+          unlocks,
+          achievements,
+          daily,
+          canRetryDaily,
+        },
+        {
+          newRun: () =>
+            void leave(
+              'new_run_button',
+              () => void this.startRun(this.runKind === 'daily' ? 'normal' : 'normal'),
+            ),
           menu: () => void leave('menu_button', () => this.showTitle()),
           share: () => void this.shareResult(),
           retryDaily: () => void leave('new_run_button', () => void this.startRun('daily')),
@@ -882,7 +981,11 @@ export class GameController {
             score: fmtInt(s.totals.score),
             best: fmtInt(s.totals.bestPrint),
           })
-        : t('share.run', { jobs: s.totals.contractsWon, score: fmtInt(s.totals.score), best: fmtInt(s.totals.bestPrint) });
+        : t('share.run', {
+            jobs: s.totals.contractsWon,
+            score: fmtInt(s.totals.score),
+            best: fmtInt(s.totals.bestPrint),
+          });
     const r = await this.s.share(text);
     if (r === 'copied') toast(t('toast.copied'));
     else if (r === 'failed') toast(t('toast.share_failed'));
@@ -900,13 +1003,21 @@ export class GameController {
     const result = await this.s.ads.showRewarded(kind, {
       beforeShow: async () => {
         this.saveRun();
-        this.s.saves.saveJSON(KEYS.pendingAd, { kind, runKind: this.runKind, granted: false } satisfies PendingAd);
+        this.s.saves.saveJSON(KEYS.pendingAd, {
+          kind,
+          runKind: this.runKind,
+          granted: false,
+        } satisfies PendingAd);
         await this.s.saves.flush();
         this.s.audio.suspend();
       },
       onReward: () => {
         granted = true;
-        this.s.saves.saveJSON(KEYS.pendingAd, { kind, runKind: this.runKind, granted: true } satisfies PendingAd);
+        this.s.saves.saveJSON(KEYS.pendingAd, {
+          kind,
+          runKind: this.runKind,
+          granted: true,
+        } satisfies PendingAd);
       },
     });
     this.s.audio.resume();
@@ -972,7 +1083,11 @@ export class GameController {
       this.hudHost.append(this.placeBtn);
     }
     const L = this.scene.layout;
-    Object.assign(this.placeBtn.style, { left: `${L.counter.x}px`, top: `${L.counter.y}px`, width: `${L.counter.w}px` });
+    Object.assign(this.placeBtn.style, {
+      left: `${L.counter.x}px`,
+      top: `${L.counter.y}px`,
+      width: `${L.counter.w}px`,
+    });
   }
 
   private showBanner(): void {
@@ -987,7 +1102,11 @@ export class GameController {
       'div',
       { class: `banner${spec.special ? ' special' : ''}`, role: 'status' },
       spec.special ? h('div', { class: 'big' }, t('banner.special')) : null,
-      h('div', { class: spec.special ? 'small' : 'big' }, t('banner.job', { n: spec.position + 1, quota: fmtInt(spec.quota), sheets: s.contract.sheetsLeft })),
+      h(
+        'div',
+        { class: spec.special ? 'small' : 'big' },
+        t('banner.job', { n: spec.position + 1, quota: fmtInt(spec.quota), sheets: s.contract.sheetsLeft }),
+      ),
       ...spec.modifiers.map((m) => h('div', { class: 'small' }, modifierName(m))),
     );
     banner.style.top = `${L.board.y + L.board.h / 3}px`;
@@ -996,6 +1115,12 @@ export class GameController {
     setTimeout(remove, 1800);
     this.scene.canvas.addEventListener('pointerdown', remove, { once: true });
     if (spec.special) this.maybeTip('tip.special');
+  }
+
+  private onlyStashEscape(engine: RunEngine): boolean {
+    for (const slot of [0, 1, 2, 'reserve'] as const)
+      if (engine.validPositions(slot).length > 0) return false;
+    return engine.anyMoveAvailable();
   }
 
   /** Just-in-time tip, once per id, at most one per contract (GDD §13). */
@@ -1028,6 +1153,16 @@ export class GameController {
   }
 
   /** Called by the tutorial when finished or skipped. */
+  /**
+   * The real run (tutorial step 3) has started: from now on a relaunch must offer "Resume run"
+   * instead of replaying the sandbox steps over the saved run. Step-3 hints keep running.
+   */
+  markTutorialDone(): void {
+    if (this.meta.tutorialDone) return;
+    this.meta.tutorialDone = true;
+    this.s.saves.saveMeta(this.meta);
+  }
+
   finishTutorial(): void {
     const tut = this.tutorial;
     this.tutorial = null;
@@ -1060,7 +1195,11 @@ export class GameController {
       /** Pointer coordinates (CSS px, relative to the canvas) for dragging `slot` onto (x, y). */
       dragPoints: (slot: SlotRef, x: number, y: number) => this.dragPoints(slot, x, y),
       skipAnimations: (on: boolean) => {
-        this.settings = { ...this.settings, counterSpeed: on ? 'instant' : 'normal', reduceMotion: on ? true : null };
+        this.settings = {
+          ...this.settings,
+          counterSpeed: on ? 'instant' : 'normal',
+          reduceMotion: on ? true : null,
+        };
         this.applySettings(false);
       },
       frameStats: () => this.scene.frameStats(),
@@ -1076,7 +1215,11 @@ export class GameController {
     };
   }
 
-  private dragPoints(slot: SlotRef, x: number, y: number): { from: { x: number; y: number }; to: { x: number; y: number } } | null {
+  private dragPoints(
+    slot: SlotRef,
+    x: number,
+    y: number,
+  ): { from: { x: number; y: number }; to: { x: number; y: number } } | null {
     const engine = this.engine;
     const L = this.scene.layout;
     const piece = engine?.pieceAt(slot);

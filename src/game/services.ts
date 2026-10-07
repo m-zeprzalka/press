@@ -48,7 +48,10 @@ export interface AdsService {
   showPrivacyOptions(): Promise<void>;
   /** Can an ad of this kind be shown now (SDK ready, consent ok)? */
   available(kind: 'rewarded' | 'interstitial'): boolean;
-  showRewarded(kind: RewardKind, hooks: { beforeShow(): Promise<void>; onReward(): void }): Promise<RewardResult>;
+  showRewarded(
+    kind: RewardKind,
+    hooks: { beforeShow(): Promise<void>; onReward(): void },
+  ): Promise<RewardResult>;
   maybeShowInterstitial(ctx: {
     trigger: InterstitialTrigger;
     resultsVisibleMs: number;

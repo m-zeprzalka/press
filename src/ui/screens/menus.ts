@@ -21,19 +21,38 @@ export interface TitleView {
 
 export function buildTitle(
   v: TitleView,
-  act: { play(): void; resume(): void; newRun(): void; daily(): void; plates(): void; stats(): void; settings(): void; noAds(): void },
+  act: {
+    play(): void;
+    resume(): void;
+    newRun(): void;
+    daily(): void;
+    plates(): void;
+    stats(): void;
+    settings(): void;
+    noAds(): void;
+  },
 ): HTMLElement {
   const col = h('div', { class: 'column', style: 'min-height:100%;justify-content:center' });
   col.append(h('div', { class: 'title-logo', html: logo(), role: 'img', 'aria-label': 'PRESS' }));
   col.append(h('div', { class: 'tagline' }, t('title.tagline')));
   const actions = h('div', { class: 'title-actions' });
   if (v.hasRun) {
-    actions.append(button(t('title.resume'), act.resume, { variant: 'primary', wide: true, icon: uiIcon('play') }));
+    actions.append(
+      button(t('title.resume'), act.resume, { variant: 'primary', wide: true, icon: uiIcon('play') }),
+    );
     actions.append(button(t('title.new_run'), act.newRun, { wide: true, icon: uiIcon('restart') }));
   } else {
-    actions.append(button(t('title.play'), act.play, { variant: 'primary', wide: true, icon: uiIcon('play') }));
+    actions.append(
+      button(t('title.play'), act.play, { variant: 'primary', wide: true, icon: uiIcon('play') }),
+    );
   }
-  actions.append(button(v.dailyInProgress ? t('title.daily_in_progress') : t('title.daily'), act.daily, { variant: 'secondary', wide: true, icon: uiIcon('calendar') }));
+  actions.append(
+    button(v.dailyInProgress ? t('title.daily_in_progress') : t('title.daily'), act.daily, {
+      variant: 'secondary',
+      wide: true,
+      icon: uiIcon('calendar'),
+    }),
+  );
   const grid = h(
     'div',
     { class: 'title-grid' },
@@ -62,7 +81,10 @@ export interface DailyView {
   buyer: boolean;
 }
 
-export function buildDaily(v: DailyView, act: { start(): void; resume(): void; extra(): void; back(): void }): HTMLElement {
+export function buildDaily(
+  v: DailyView,
+  act: { start(): void; resume(): void; extra(): void; back(): void },
+): HTMLElement {
   const col = h(
     'div',
     { class: 'column' },
@@ -73,14 +95,26 @@ export function buildDaily(v: DailyView, act: { start(): void; resume(): void; e
     h('p', { class: 'muted', style: 'margin:0;font-size:.9rem' }, t('daily.note')),
     h('div', { class: 'display' }, t('daily.attempts', { used: v.attemptsUsed, max: v.attemptsMax })),
   );
-  if (v.best) col.append(h('div', { class: 'display' }, t('daily.best', { jobs: v.best.contracts, score: fmtInt(v.best.score) })));
-  if (v.inProgress) col.append(button(t('title.resume'), act.resume, { variant: 'primary', wide: true, icon: uiIcon('play') }));
-  else if (v.attemptsUsed < v.attemptsMax) col.append(button(t('daily.start'), act.start, { variant: 'primary', wide: true, icon: uiIcon('play') }));
+  if (v.best)
+    col.append(
+      h(
+        'div',
+        { class: 'display' },
+        t('daily.best', { jobs: v.best.contracts, score: fmtInt(v.best.score) }),
+      ),
+    );
+  if (v.inProgress)
+    col.append(
+      button(t('title.resume'), act.resume, { variant: 'primary', wide: true, icon: uiIcon('play') }),
+    );
+  else if (v.attemptsUsed < v.attemptsMax)
+    col.append(button(t('daily.start'), act.start, { variant: 'primary', wide: true, icon: uiIcon('play') }));
   else if (v.canExtra && (v.extraAvailable || v.buyer)) {
     const b = button(t('daily.extra'), act.extra, { variant: 'secondary', wide: true, armDelayMs: 600 });
     if (!v.buyer) b.prepend(svgIcon(uiIcon('ad'), 'icon ad-mark'));
     col.append(b);
-  } else col.append(h('div', { class: 'display', style: 'text-align:center;font-size:1.2rem' }, t('daily.done')));
+  } else
+    col.append(h('div', { class: 'display', style: 'text-align:center;font-size:1.2rem' }, t('daily.done')));
   col.append(button(t('common.back'), act.back, { variant: 'ghost', icon: uiIcon('back') }));
   return col;
 }
@@ -108,9 +142,20 @@ export function buildSettings(
 ): HTMLElement {
   const s = v.settings;
   const row = (labelText: string, control: HTMLElement, hint?: string) =>
-    h('div', { class: 'setting' }, h('div', null, h('div', null, labelText), hint ? h('div', { class: 'hint' }, hint) : null), control);
+    h(
+      'div',
+      { class: 'setting' },
+      h('div', null, h('div', null, labelText), hint ? h('div', { class: 'hint' }, hint) : null),
+      control,
+    );
   const slider = (value: number, onInput: (x: number) => void, label: string) => {
-    const r = h('input', { type: 'range', min: '0', max: '100', value: String(Math.round(value * 100)), 'aria-label': label }) as HTMLInputElement;
+    const r = h('input', {
+      type: 'range',
+      min: '0',
+      max: '100',
+      value: String(Math.round(value * 100)),
+      'aria-label': label,
+    }) as HTMLInputElement;
     r.addEventListener('input', () => onInput(Number(r.value) / 100));
     return r;
   };
@@ -119,7 +164,11 @@ export function buildSettings(
     { class: 'column' },
     h('h1', { class: 'riso-title', style: 'font-size:2rem' }, t('settings.title')),
     h('div', { class: 'group-title' }, t('settings.group.access')),
-    row(t('settings.symbols'), toggle(s.symbols, (x) => act.change({ symbols: x }), t('settings.symbols')), t('settings.symbols_hint')),
+    row(
+      t('settings.symbols'),
+      toggle(s.symbols, (x) => act.change({ symbols: x }), t('settings.symbols')),
+      t('settings.symbols_hint'),
+    ),
     row(
       t('settings.reduce_motion'),
       toggle(s.reduceMotion ?? false, (x) => act.change({ reduceMotion: x }), t('settings.reduce_motion')),
@@ -148,9 +197,18 @@ export function buildSettings(
       ),
     ),
     h('div', { class: 'group-title' }, t('settings.group.sound')),
-    row(t('settings.music'), slider(s.music, (x) => act.change({ music: x }), t('settings.music'))),
-    row(t('settings.sfx'), slider(s.sfx, (x) => act.change({ sfx: x }), t('settings.sfx'))),
-    row(t('settings.haptics'), toggle(s.haptics, (x) => act.change({ haptics: x }), t('settings.haptics'))),
+    row(
+      t('settings.music'),
+      slider(s.music, (x) => act.change({ music: x }), t('settings.music')),
+    ),
+    row(
+      t('settings.sfx'),
+      slider(s.sfx, (x) => act.change({ sfx: x }), t('settings.sfx')),
+    ),
+    row(
+      t('settings.haptics'),
+      toggle(s.haptics, (x) => act.change({ haptics: x }), t('settings.haptics')),
+    ),
     h('div', { class: 'group-title' }, t('settings.group.game')),
     row(
       t('settings.language'),
@@ -164,12 +222,26 @@ export function buildSettings(
         (x) => act.change({ lang: x }),
       ),
     ),
-    row(t('settings.fullscreen'), toggle(s.fullscreen, (x) => act.change({ fullscreen: x }), t('settings.fullscreen'))),
-    row(t('settings.tips'), toggle(s.tips, (x) => act.change({ tips: x }), t('settings.tips'))),
-    h('div', { class: 'row' }, button(t('settings.reset_tips'), act.resetTips, { small: true }), button(t('settings.tutorial'), act.tutorial, { small: true })),
+    row(
+      t('settings.fullscreen'),
+      toggle(s.fullscreen, (x) => act.change({ fullscreen: x }), t('settings.fullscreen')),
+    ),
+    row(
+      t('settings.tips'),
+      toggle(s.tips, (x) => act.change({ tips: x }), t('settings.tips')),
+    ),
+    h(
+      'div',
+      { class: 'row' },
+      button(t('settings.reset_tips'), act.resetTips, { small: true }),
+      button(t('settings.tutorial'), act.tutorial, { small: true }),
+    ),
     h('div', { class: 'group-title' }, t('settings.group.privacy')),
   );
-  if (v.privacyOptions) col.append(button(t('settings.privacy_options'), act.privacyOptions, { wide: true, icon: uiIcon('privacy') }));
+  if (v.privacyOptions)
+    col.append(
+      button(t('settings.privacy_options'), act.privacyOptions, { wide: true, icon: uiIcon('privacy') }),
+    );
   col.append(button(t('settings.privacy_policy'), act.policy, { wide: true, variant: 'ghost' }));
   if (v.iapAvailable) col.append(button(t('settings.restore'), act.restore, { wide: true, small: true }));
   col.append(
@@ -241,7 +313,14 @@ export function buildCollection(unlocked: ReadonlySet<MatrixId>, act: { back(): 
   for (const id of MATRIX_IDS) {
     const open = unlocked.has(id);
     const ach = unlockBy.get(id);
-    const extra = !open && ach ? h('div', { class: 'display', style: 'font-size:.8rem' }, t('plate.unlock_by', { cond: t(`ach.${ach}.desc`) })) : null;
+    const extra =
+      !open && ach
+        ? h(
+            'div',
+            { class: 'display', style: 'font-size:.8rem' },
+            t('plate.unlock_by', { cond: t(`ach.${ach}.desc`) }),
+          )
+        : null;
     col.append(plateCard(id, { locked: !open, extra }));
   }
   col.append(button(t('common.back'), act.back, { icon: uiIcon('back'), wide: true }));
@@ -265,12 +344,31 @@ export function buildNoAds(v: NoAdsView, act: { buy(): void; restore(): void; ba
     { class: 'column' },
     svgIcon(uiIcon('crown'), 'icon'),
     h('h1', { class: 'riso-title', style: 'font-size:2.2rem' }, t('noads.title')),
-    h('ul', { style: 'margin:0;padding-left:20px;line-height:1.6' }, h('li', null, t('noads.b1')), h('li', null, t('noads.b2')), h('li', null, t('noads.b3'))),
+    h(
+      'ul',
+      { style: 'margin:0;padding-left:20px;line-height:1.6' },
+      h('li', null, t('noads.b1')),
+      h('li', null, t('noads.b2')),
+      h('li', null, t('noads.b3')),
+    ),
   );
   if (!v.available) col.append(h('p', { class: 'muted' }, t('noads.unavailable')));
-  else if (v.entitled) col.append(h('div', { class: 'badge', style: 'align-self:center;background:var(--ink-teal);color:#fff;font-size:1rem' }, t('noads.owned')));
+  else if (v.entitled)
+    col.append(
+      h(
+        'div',
+        { class: 'badge', style: 'align-self:center;background:var(--ink-teal);color:#fff;font-size:1rem' },
+        t('noads.owned'),
+      ),
+    );
   else if (v.pending) col.append(h('p', null, t('noads.pending')));
-  else col.append(button(v.price ? t('noads.buy', { price: v.price }) : t('noads.buy_generic'), act.buy, { variant: 'primary', wide: true }));
+  else
+    col.append(
+      button(v.price ? t('noads.buy', { price: v.price }) : t('noads.buy_generic'), act.buy, {
+        variant: 'primary',
+        wide: true,
+      }),
+    );
   if (v.error) col.append(h('p', { style: 'color:#b00020' }, t('noads.error')));
   if (v.available) col.append(button(t('noads.restore'), act.restore, { wide: true, small: true }));
   col.append(button(t('common.back'), act.back, { icon: uiIcon('back'), wide: true, variant: 'ghost' }));

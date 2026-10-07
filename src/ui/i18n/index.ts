@@ -80,7 +80,9 @@ export function fmtInt(n: number, l: Lang = lang): string {
     const [div, en, pl] = units.find(([d]) => v >= d) as [number, string, string];
     const val = v / div;
     const digits = val >= 100 ? 0 : 1;
-    s = fmtDecimal(Math.floor(val * 10 ** digits) / 10 ** digits, digits, l) + (l === 'pl' ? pl.replace(' ', NBSP) : en);
+    s =
+      fmtDecimal(Math.floor(val * 10 ** digits) / 10 ** digits, digits, l) +
+      (l === 'pl' ? pl.replace(' ', NBSP) : en);
   } else {
     s = groupDigits(String(v), l === 'pl' ? NBSP : ',');
   }

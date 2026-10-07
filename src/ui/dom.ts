@@ -10,7 +10,11 @@ type Props = Record<string, unknown> & {
   html?: string;
 };
 
-export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props | null = null, ...children: Child[]): HTMLElementTagNameMap[K] {
+export function h<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  props: Props | null = null,
+  ...children: Child[]
+): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   if (props) {
     for (const [k, v] of Object.entries(props)) {
@@ -20,7 +24,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props | 
         if (typeof v === 'string') el.setAttribute('style', v);
         else Object.assign(el.style, v);
       } else if (k === 'on') {
-        for (const [ev, fn] of Object.entries(v as Record<string, (e: Event) => void>)) el.addEventListener(ev, fn);
+        for (const [ev, fn] of Object.entries(v as Record<string, (e: Event) => void>))
+          el.addEventListener(ev, fn);
       } else if (k === 'html') el.innerHTML = String(v);
       else if (k in el && typeof v !== 'string') (el as unknown as Record<string, unknown>)[k] = v;
       else el.setAttribute(k, v === true ? '' : String(v));
@@ -54,7 +59,9 @@ export interface ButtonOpts {
 }
 
 export function button(text: string, onClick: () => void, opts: ButtonOpts = {}): HTMLButtonElement {
-  const cls = ['btn', opts.variant ?? '', opts.small ? 'small' : '', opts.wide ? 'wide' : ''].filter(Boolean).join(' ');
+  const cls = ['btn', opts.variant ?? '', opts.small ? 'small' : '', opts.wide ? 'wide' : '']
+    .filter(Boolean)
+    .join(' ');
   const b = h('button', { class: cls, type: 'button', 'aria-label': opts.label ?? undefined });
   if (opts.icon) b.append(svgIcon(opts.icon));
   b.append(h('span', null, text));
@@ -86,7 +93,13 @@ export function announce(text: string): void {
 }
 
 export function toggle(checked: boolean, onChange: (v: boolean) => void, label: string): HTMLButtonElement {
-  const t = h('button', { class: 'toggle', type: 'button', role: 'switch', 'aria-checked': String(checked), 'aria-label': label });
+  const t = h('button', {
+    class: 'toggle',
+    type: 'button',
+    role: 'switch',
+    'aria-checked': String(checked),
+    'aria-label': label,
+  });
   t.addEventListener('click', () => {
     const v = t.getAttribute('aria-checked') !== 'true';
     t.setAttribute('aria-checked', String(v));
@@ -95,7 +108,11 @@ export function toggle(checked: boolean, onChange: (v: boolean) => void, label: 
   return t;
 }
 
-export function segmented<T extends string>(options: Array<{ value: T; label: string }>, value: T, onChange: (v: T) => void): HTMLDivElement {
+export function segmented<T extends string>(
+  options: Array<{ value: T; label: string }>,
+  value: T,
+  onChange: (v: T) => void,
+): HTMLDivElement {
   const wrap = h('div', { class: 'seg', role: 'group' });
   const buttons = options.map((o) => {
     const b = h('button', { type: 'button', 'aria-pressed': String(o.value === value) }, o.label);

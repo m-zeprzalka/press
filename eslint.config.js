@@ -4,7 +4,17 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'dev-dist/**', 'coverage/**', 'android/**', 'node_modules/**', 'test-results/**', 'playwright-report/**'],
+    ignores: [
+      'dist/**',
+      'dev-dist/**',
+      'coverage/**',
+      'android/**',
+      'node_modules/**',
+      'test-results/**',
+      'playwright-report/**',
+      '.dev/**',
+      'scripts/textures/preview/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -23,7 +33,19 @@ export default tseslint.config(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: ['pixi.js', '@capacitor/*', '@capacitor-community/*', '@capgo/*', '../ui/*', '../render/*', '../platform/*', '../audio/*', '../game/*'] },
+        {
+          patterns: [
+            'pixi.js',
+            '@capacitor/*',
+            '@capacitor-community/*',
+            '@capgo/*',
+            '../ui/*',
+            '../render/*',
+            '../platform/*',
+            '../audio/*',
+            '../game/*',
+          ],
+        },
       ],
       'no-restricted-globals': ['error', 'window', 'document', 'navigator', 'localStorage', 'performance'],
     },

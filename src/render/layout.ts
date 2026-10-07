@@ -109,11 +109,19 @@ function portraitLayout(inp: LayoutInput, usableW: number, usableH: number, tooS
   const colW = maxColumn - 2 * BANDS.side;
   const colX = x0 + BANDS.side;
 
-  const rackFor = (tier: number) => (tier >= 4 ? BANDS.rackStrip : tier >= 2 ? BANDS.rackCompact : BANDS.rack);
+  const rackFor = (tier: number) =>
+    tier >= 4 ? BANDS.rackStrip : tier >= 2 ? BANDS.rackCompact : BANDS.rack;
   const fixedFor = (tier: number) => {
     const status = tier >= 1 ? 0 : BANDS.status + BANDS.gap;
     return (
-      BANDS.pad * 2 + BANDS.header + BANDS.quota + status + rackFor(tier) + BANDS.counter + BANDS.tray + BANDS.gap * 5
+      BANDS.pad * 2 +
+      BANDS.header +
+      BANDS.quota +
+      status +
+      rackFor(tier) +
+      BANDS.counter +
+      BANDS.tray +
+      BANDS.gap * 5
     );
   };
   const boardFor = (t: number) => Math.min(colW, usableH - fixedFor(t));
@@ -186,7 +194,10 @@ function landscapeLayout(inp: LayoutInput, usableW: number, usableH: number, too
   const boardAreaW = usableW - sideW - BANDS.side * 3;
   const board = rect(
     insets.left + BANDS.side + Math.max(0, (boardAreaW - boardSize) / 2),
-    insets.top + BANDS.pad + dragOffset / 2 + Math.max(0, (usableH - 2 * BANDS.pad - dragOffset - boardSize) / 2),
+    insets.top +
+      BANDS.pad +
+      dragOffset / 2 +
+      Math.max(0, (usableH - 2 * BANDS.pad - dragOffset - boardSize) / 2),
     boardSize,
     boardSize,
   );

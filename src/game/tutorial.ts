@@ -41,7 +41,10 @@ export class Tutorial {
 
   // ------------------------------------------------------------------ sandbox steps
 
-  private sandboxEngine(fill: (cells: number[]) => void, tray: Array<{ shape: string; ink: number } | null>): RunEngine {
+  private sandboxEngine(
+    fill: (cells: number[]) => void,
+    tray: Array<{ shape: string; ink: number } | null>,
+  ): RunEngine {
     const { engine } = RunEngine.create({ seed: 'press-tutorial' });
     const s = engine.snapshot();
     s.cells = new Array<number>(64).fill(EMPTY);
@@ -58,9 +61,12 @@ export class Tutorial {
     this.sandbox = true;
     const row = 7;
     const inks = [1, 2, 3, 4, 1];
-    const engine = this.sandboxEngine((c) => {
-      for (let x = 0; x < 5; x++) c[idx(x, row)] = inks[x] as number;
-    }, [null, { shape: 'i3h', ink: 0 }, null]);
+    const engine = this.sandboxEngine(
+      (c) => {
+        for (let x = 0; x < 5; x++) c[idx(x, row)] = inks[x] as number;
+      },
+      [null, { shape: 'i3h', ink: 0 }, null],
+    );
     this.target = { slot: 1, x: 5, y: row };
     this.ctl.installSandbox(engine);
     this.showCard(t('tut.step1'), true);
@@ -69,15 +75,18 @@ export class Tutorial {
 
   private setupStep2(): void {
     this.step = 2;
-    const engine = this.sandboxEngine((c) => {
-      const colors = [0, 1, 2, 3, 4, 0];
-      for (let x = 0; x < 6; x++) c[idx(x, 7)] = colors[x] as number;
-      for (let y = 0; y < 6; y++) c[idx(7, y)] = colors[(y + 2) % 6] as number;
-      // A few loose cells so it looks like a real forme.
-      c[idx(2, 3)] = 3;
-      c[idx(3, 3)] = 3;
-      c[idx(4, 5)] = 1;
-    }, [{ shape: 'l3b', ink: 4 }, null, null]);
+    const engine = this.sandboxEngine(
+      (c) => {
+        const colors = [0, 1, 2, 3, 4, 0];
+        for (let x = 0; x < 6; x++) c[idx(x, 7)] = colors[x] as number;
+        for (let y = 0; y < 6; y++) c[idx(7, y)] = colors[(y + 2) % 6] as number;
+        // A few loose cells so it looks like a real forme.
+        c[idx(2, 3)] = 3;
+        c[idx(3, 3)] = 3;
+        c[idx(4, 5)] = 1;
+      },
+      [{ shape: 'l3b', ink: 4 }, null, null],
+    );
     this.target = { slot: 0, x: 6, y: 6 };
     this.ctl.installSandbox(engine);
     this.showCard(t('tut.step2'), false);
@@ -90,6 +99,7 @@ export class Tutorial {
     this.target = null;
     this.clearHand();
     void this.ctl.startRun('normal').then(() => {
+      this.ctl.markTutorialDone();
       this.showCard(t('tut.step3_quota'), false, 5000);
     });
   }
@@ -169,7 +179,13 @@ export class Tutorial {
   private animateHand(): void {
     const tg = this.target;
     if (!tg) return;
-    const api = this.ctl.debugApi() as { dragPoints: (s: SlotRef, x: number, y: number) => { from: { x: number; y: number }; to: { x: number; y: number } } | null };
+    const api = this.ctl.debugApi() as {
+      dragPoints: (
+        s: SlotRef,
+        x: number,
+        y: number,
+      ) => { from: { x: number; y: number }; to: { x: number; y: number } } | null;
+    };
     const pts = api.dragPoints(tg.slot, tg.x, tg.y);
     if (!pts) return;
     this.hand?.remove();

@@ -125,7 +125,8 @@ export const PL: Record<string, string> = {
   'plate.momentum.name': 'Rozpęd',
   'plate.momentum.desc': '×(1 + {x} × SERIA) mnożnika.',
   'plate.conveyor.name': 'Taśmociąg',
-  'plate.conveyor.desc': 'SERIA przetrwa o {n} suche ułożenie więcej. {pct}% SERII przechodzi do następnego zlecenia.',
+  'plate.conveyor.desc':
+    'SERIA przetrwa o {n} suche ułożenie więcej. {pct}% SERII przechodzi do następnego zlecenia.',
   'plate.gutenberg.name': 'Gutenberg',
   'plate.gutenberg.desc': '×{x} mnożnika. Rośnie o ×{step} po każdym wyrobionym zleceniu.',
   'plate.hydraulic.name': 'Prasa hydrauliczna',
@@ -182,8 +183,7 @@ export const PL: Record<string, string> = {
   'offer.title': 'Wybierz matrycę',
   'offer.job_done': 'Zlecenie {n} wyrobione',
   'offer.take': 'Weź',
-  'offer.skip':
-    'Pomiń · {n, plural, one {+# arkusz} few {+# arkusze} many {+# arkuszy} other {+# arkusza}}',
+  'offer.skip': 'Pomiń · {n, plural, one {+# arkusz} few {+# arkusze} many {+# arkuszy} other {+# arkusza}}',
   'offer.reroll': 'Przeładuj',
   'offer.reroll_free': 'Przeładuj · za darmo',
   'offer.rerolls_left': 'Przeładowania: {free} darmowe · {ad}/{max} za reklamę',
@@ -291,7 +291,8 @@ export const PL: Record<string, string> = {
   'settings.privacy_policy': 'Polityka prywatności',
   'settings.restore': 'Przywróć zakup',
   'settings.version': 'Wersja {v}',
-  'settings.credits': 'Projekt, kod, grafika, krój pisma i dźwięk — własne, w całości generowane proceduralnie.',
+  'settings.credits':
+    'Projekt, kod, grafika, krój pisma i dźwięk — własne, w całości generowane proceduralnie.',
 
   // Bez reklam
   'noads.title': 'Bez reklam',
@@ -391,6 +392,7 @@ export const PL: Record<string, string> = {
   'tip.drop_dried': 'Suche ułożenie: seria wysycha po 3',
   'tip.low_sheets': 'Mało arkuszy? Sprzedaj matrycę',
   'tip.first_loss': 'Jeden dodruk na run może cię uratować',
+  'tip.stash_escape': 'Nic nie pasuje — upuść ostatni klocek na Kasztę, a dostaniesz nową tacę',
   'tip.drag_hint': 'Przeciągnij na formę',
 
   // Różne

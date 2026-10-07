@@ -149,7 +149,9 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+  transition:
+    transform 60ms ease-out,
+    box-shadow 60ms ease-out;
   touch-action: manipulation;
   line-height: 1.15;
   text-align: center;

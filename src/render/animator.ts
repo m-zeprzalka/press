@@ -37,6 +37,14 @@ interface Tween {
 
 export type Updater = (dtMs: number) => boolean | void;
 
+let reported = false;
+/** A broken animation is dropped, not fatal; log the first one so it is not invisible in dev. */
+function reportOnce(err: unknown): void {
+  if (reported) return;
+  reported = true;
+  console.warn('[animator] dropped a failing animation', err);
+}
+
 export class Animator {
   private tweens: Tween[] = [];
   private updaters = new Set<Updater>();
@@ -116,7 +124,8 @@ export class Animator {
     const keep: Tween[] = [];
     for (const tw of this.tweens) {
       if (tw.key === key) {
-        for (const [k, v] of Object.entries(tw.to)) tw.target[k] = v;
+        if ((tw.target as { destroyed?: boolean }).destroyed !== true)
+          for (const [k, v] of Object.entries(tw.to)) tw.target[k] = v;
         tw.onUpdate?.(1);
         tw.resolve();
       } else keep.push(tw);
@@ -129,7 +138,8 @@ export class Animator {
     const all = this.tweens;
     this.tweens = [];
     for (const tw of all) {
-      for (const [k, v] of Object.entries(tw.to)) tw.target[k] = v;
+      if ((tw.target as { destroyed?: boolean }).destroyed !== true)
+        for (const [k, v] of Object.entries(tw.to)) tw.target[k] = v;
       tw.onUpdate?.(1);
       tw.resolve();
     }
@@ -154,6 +164,20 @@ export class Animator {
 
   private frame = (now: number) => {
     this.inFrame = true;
+    try {
+      this.step(now);
+    } finally {
+      // Never leave the loop wedged: an exception in one frame must not stop all rendering.
+      this.inFrame = false;
+      this.raf = 0;
+      // Keep rendering briefly after going idle (late redraw requests), then sleep.
+      if (this.busy || this.dirty || now - this.idleSince < 500) {
+        this.raf = requestAnimationFrame(this.frame);
+      }
+    }
+  };
+
+  private step(now: number): void {
     const dt = Math.min(50, Math.max(0, now - this.last));
     this.last = now;
     const t0 = performance.now();
@@ -162,6 +186,11 @@ export class Animator {
     if (this.tweens.length) {
       const done: Tween[] = [];
       for (const tw of this.tweens) {
+        // Display objects destroyed mid-tween (screen change, relayout) are dropped silently.
+        if ((tw.target as { destroyed?: boolean }).destroyed === true) {
+          done.push(tw);
+          continue;
+        }
         if (tw.delay > 0) {
           tw.delay -= dt;
           if (tw.delay > 0) continue;
@@ -169,10 +198,16 @@ export class Animator {
         tw.elapsed += dt;
         const p = Math.min(1, tw.elapsed / tw.duration);
         const e = tw.ease(p);
-        for (const k of Object.keys(tw.to)) {
-          tw.target[k] = (tw.from[k] as number) + ((tw.to[k] as number) - (tw.from[k] as number)) * e;
+        try {
+          for (const k of Object.keys(tw.to)) {
+            tw.target[k] = (tw.from[k] as number) + ((tw.to[k] as number) - (tw.from[k] as number)) * e;
+          }
+          tw.onUpdate?.(p);
+        } catch (err) {
+          reportOnce(err);
+          done.push(tw);
+          continue;
         }
-        tw.onUpdate?.(p);
         if (p >= 1) done.push(tw);
       }
       if (done.length) {
@@ -181,7 +216,12 @@ export class Animator {
       }
     }
     for (const u of [...this.updaters]) {
-      if (u(dt) === false) this.updaters.delete(u);
+      try {
+        if (u(dt) === false) this.updaters.delete(u);
+      } catch (err) {
+        reportOnce(err);
+        this.updaters.delete(u);
+      }
     }
 
     this.render();
@@ -195,13 +235,7 @@ export class Animator {
     } else if (!this.idleSince) {
       this.idleSince = now;
     }
-    this.inFrame = false;
-    this.raf = 0;
-    // Keep rendering briefly after going idle (late redraw requests), then sleep.
-    if (this.busy || this.dirty || now - this.idleSince < 500) {
-      this.raf = requestAnimationFrame(this.frame);
-    }
-  };
+  }
 
   destroy(): void {
     if (this.raf) cancelAnimationFrame(this.raf);

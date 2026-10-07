@@ -39,10 +39,14 @@ export function buildSteps(events: readonly ScoreEvent[]): Step[] {
   const raw: Step[] = [];
   let pitch = 0;
   for (const e of events) {
-    if (e.t === 'p') raw.push({ kind: 'p', P: e.P, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
-    else if (e.t === 'lx') raw.push({ kind: 'x', P: e.P, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
-    else if (e.t === 'm') raw.push({ kind: 'm', M: e.M, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
-    else if (e.t === 'x') raw.push({ kind: 'x', M: e.M, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
+    if (e.t === 'p')
+      raw.push({ kind: 'p', P: e.P, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
+    else if (e.t === 'lx')
+      raw.push({ kind: 'x', P: e.P, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
+    else if (e.t === 'm')
+      raw.push({ kind: 'm', M: e.M, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
+    else if (e.t === 'x')
+      raw.push({ kind: 'x', M: e.M, slot: typeof e.src === 'number' ? e.src : undefined, pitch: pitch++ });
     else if (e.t === 'line') raw.push({ kind: 'line', pitch });
   }
   if (raw.filter((s) => s.kind !== 'line').length <= 40) return raw.filter((s) => s.kind !== 'line');
@@ -92,7 +96,12 @@ export class Presenter {
     const c = s.contract;
     scene.hud.setQuota(c.progress, c.spec.quota, false);
     scene.hud.setSheets(c.sheetsLeft, c.sheetsUsed, c.spec.sheets);
-    scene.hud.setStreak(c.streak, c.dry, engine.streakGrace(), c.spec.modifiers.some((m) => m.id === 'wet_ink'));
+    scene.hud.setStreak(
+      c.streak,
+      c.dry,
+      engine.streakGrace(),
+      c.spec.modifiers.some((m) => m.id === 'wet_ink'),
+    );
     this.hooks.refreshHud();
     scene.animator.request();
   }
@@ -123,7 +132,11 @@ export class Presenter {
         case 'placed':
           scene.board.placeCells(e.cells, e.piece.ink, rm);
           scene.tray.set(engine.state.tray, engine.state.reserve, this.trayNotes(engine));
-          scene.hud.setSheets(engine.state.contract.sheetsLeft, engine.state.contract.sheetsUsed, engine.state.contract.spec.sheets);
+          scene.hud.setSheets(
+            engine.state.contract.sheetsLeft,
+            engine.state.contract.sheetsUsed,
+            engine.state.contract.spec.sheets,
+          );
           this.hooks.sound('place');
           this.hooks.haptic('light');
           break;
@@ -142,15 +155,17 @@ export class Presenter {
           this.hooks.haptic('selection');
           break;
         case 'contract_won':
-          this.fx = this.fx.then(() => this.playing).then(() =>
-            scene.fx.stamp(this.hooks.t('stamp.approved'), this.boardCenter(), INKS[3]),
-          );
+          this.fx = this.fx
+            .then(() => this.playing)
+            .then(() => scene.fx.stamp(this.hooks.t('stamp.approved'), this.boardCenter(), INKS[3]));
           this.hooks.sound('quota_done');
           this.hooks.haptic('success');
           break;
         case 'lost': {
           const text = e.reason === 'jam' ? this.hooks.t('stamp.jam') : this.hooks.t('stamp.out_of_sheets');
-          this.fx = this.fx.then(() => this.playing).then(() => scene.fx.stamp(text, this.boardCenter(), INKS[0]));
+          this.fx = this.fx
+            .then(() => this.playing)
+            .then(() => scene.fx.stamp(text, this.boardCenter(), INKS[0]));
           this.hooks.sound(e.reason === 'jam' ? 'jam' : 'lose');
           this.hooks.haptic('error');
           if (!rm) scene.fx.shake(5);
@@ -162,12 +177,20 @@ export class Presenter {
         case 'continued':
           scene.board.setCells(engine.state.cells);
           scene.tray.set(engine.state.tray, engine.state.reserve, this.trayNotes(engine));
-          scene.hud.setSheets(engine.state.contract.sheetsLeft, engine.state.contract.sheetsUsed, engine.state.contract.spec.sheets);
+          scene.hud.setSheets(
+            engine.state.contract.sheetsLeft,
+            engine.state.contract.sheetsUsed,
+            engine.state.contract.spec.sheets,
+          );
           this.hooks.sound('stamp');
           break;
         case 'plate_sold':
           this.hooks.sound('sell');
-          scene.hud.setSheets(engine.state.contract.sheetsLeft, engine.state.contract.sheetsUsed, engine.state.contract.spec.sheets);
+          scene.hud.setSheets(
+            engine.state.contract.sheetsLeft,
+            engine.state.contract.sheetsUsed,
+            engine.state.contract.spec.sheets,
+          );
           this.hooks.refreshHud();
           break;
         case 'plate_added':
@@ -186,7 +209,12 @@ export class Presenter {
     return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
   }
 
-  private onPrinted(e: Extract<RunEvent, { type: 'printed' }>, engine: RunEngine, style: CellStyle, rm: boolean): void {
+  private onPrinted(
+    e: Extract<RunEvent, { type: 'printed' }>,
+    engine: RunEngine,
+    style: CellStyle,
+    rm: boolean,
+  ): void {
     const scene = this.scene;
     this.lastPrint = e;
     this.fastForward();
@@ -246,7 +274,8 @@ export class Presenter {
     const scene = this.scene;
     // MULT starts at the base value (lines + streak + single-ink) so it never reads "× 0".
     let baseM = 0;
-    for (const e of events) if (e.t === 'm' && (e.src === 'lines' || e.src === 'streak' || e.src === 'mono')) baseM = e.M;
+    for (const e of events)
+      if (e.t === 'm' && (e.src === 'lines' || e.src === 'streak' || e.src === 'mono')) baseM = e.M;
     this.setCounter(0, baseM);
     const run = async () => {
       if (budget > 0) {

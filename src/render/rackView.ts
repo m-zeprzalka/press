@@ -58,9 +58,13 @@ class CardView extends Container {
     const shadow = card.rarity === 'legendary' ? INKS[4] : card.rarity === 'rare' ? INKS[0] : INKS[2];
     g.roundRect(3, 3, w - 2, h - 2, 8).fill({ color: shadow, alpha: 0.85 });
     g.roundRect(0, 0, w - 2, h - 2, 8).fill(PAPER);
-    g.roundRect(0, 0, w - 2, h - 2, 8).stroke({ width: card.rarity === 'common' ? 2 : 3, color: RARITY[card.rarity] });
+    g.roundRect(0, 0, w - 2, h - 2, 8).stroke({
+      width: card.rarity === 'common' ? 2 : 3,
+      color: RARITY[card.rarity],
+    });
     if (card.rarity === 'rare') g.roundRect(4, 4, w - 10, h - 10, 6).stroke({ width: 1, color: RARITY.rare });
-    if (card.rarity === 'legendary') g.roundRect(4, 4, w - 10, h - 10, 6).stroke({ width: 1.5, color: INKS[4] });
+    if (card.rarity === 'legendary')
+      g.roundRect(4, 4, w - 10, h - 10, 6).stroke({ width: 1.5, color: INKS[4] });
     const iconSize = Math.min(w - 14, h - 18);
     if (icon) {
       this.icon.texture = icon;
@@ -81,15 +85,23 @@ class CardView extends Container {
       const o = this.overlay;
       o.roundRect(0, 0, w - 2, h - 2, 8).fill({ color: 0x8d8a86, alpha: 0.55 });
       if (card.disabled) {
-        o.moveTo(10, 10).lineTo(w - 12, h - 12).moveTo(w - 12, 10).lineTo(10, h - 12);
+        o.moveTo(10, 10)
+          .lineTo(w - 12, h - 12)
+          .moveTo(w - 12, 10)
+          .lineTo(10, h - 12);
         o.stroke({ width: 4, color: INK, alpha: 0.85 });
       }
     }
     if (card.mirror && !card.inert) {
       // Arrow → towards the copied neighbour.
       const o = this.overlay;
-      o.moveTo(w - 14, h / 2).lineTo(w + 4, h / 2).stroke({ width: 3, color: INK });
-      o.moveTo(w, h / 2 - 5).lineTo(w + 6, h / 2).lineTo(w, h / 2 + 5).stroke({ width: 3, color: INK });
+      o.moveTo(w - 14, h / 2)
+        .lineTo(w + 4, h / 2)
+        .stroke({ width: 3, color: INK });
+      o.moveTo(w, h / 2 - 5)
+        .lineTo(w + 6, h / 2)
+        .lineTo(w, h / 2 + 5)
+        .stroke({ width: 3, color: INK });
     }
   }
 }
