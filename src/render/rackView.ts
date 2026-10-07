@@ -177,6 +177,8 @@ export class RackView extends Container {
   wiggle(slot: number): void {
     const c = this.cards[slot];
     if (!c || !this.data[slot]) return;
+    this.animator.cancel(c.scale);
+    this.animator.cancel(c);
     c.scale.set(1.14);
     c.rotation = 0.08;
     void this.animator.tween(c.scale, { x: 1, y: 1 }, 180, { ease: ease.outBack, key: c.scale });

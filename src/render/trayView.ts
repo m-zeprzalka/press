@@ -171,6 +171,7 @@ export class TrayView extends Container {
   wiggle(slot: number | 'reserve'): void {
     const p = this.pieceView(slot);
     if (!p) return;
+    this.animator.cancel(p); // finish a running deal/wiggle so x0 is the resting position
     const x0 = p.x;
     void this.animator
       .tween(p, { x: x0 + 6 }, 60, { key: p })

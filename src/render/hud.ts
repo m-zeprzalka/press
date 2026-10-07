@@ -229,6 +229,7 @@ export class HudView extends Container {
 
   pulse(which: 'p' | 'm' | 'x'): void {
     const target = which === 'p' ? this.printsValue : this.multValue;
+    this.animator.cancel(target.scale); // settle the previous pulse (back to base) before reading it
     const s = target.scale.x;
     target.scale.set(s * (which === 'x' ? 1.35 : 1.18));
     void this.animator.tween(target.scale, { x: s, y: s }, which === 'x' ? 220 : 120, {
