@@ -54,12 +54,16 @@ interface PendingAd {
   kind: RewardKind;
   runKind: RunKind | null;
   granted: boolean;
+  /** UTC date of the daily challenge an extra attempt was for. */
+  date?: string;
 }
 
 const KEYS = {
   settings: 'press.settings',
   pendingAd: 'press.pendingAd',
   dailyExtra: 'press.dailyExtra',
+  /** Seed of the run in which a rewarded ad was watched (no interstitial after it, GDD §11.3). */
+  rewardedRun: 'press.rewardedRun',
 } as const;
 
 export class GameController {
@@ -71,6 +75,8 @@ export class GameController {
   readonly input: InputController;
   private locked = false;
   private rewardedThisRun = false;
+  /** The current run ended through Pause → Abandon (no ad pacing, no interstitial). */
+  private abandonedRun = false;
   private resultsShownAt = 0;
   private dailyExtra: Record<string, number> = {};
   private hudButtons: HTMLElement[] = [];
@@ -276,6 +282,8 @@ export class GameController {
     const content = buildSettings(
       {
         settings: this.settings,
+        reduceMotion: effectiveReduceMotion(this.settings),
+        inGame: fromGame,
         privacyOptions: this.s.ads.privacyOptionsRequired(),
         iapAvailable: this.s.iap.available,
         version: APP_VERSION,
@@ -292,10 +300,20 @@ export class GameController {
         restore: () =>
           void this.s.iap
             .restore()
-            .then(() => toast(this.s.iap.entitled ? t('noads.owned') : t('noads.restore'))),
+            .then((r) =>
+              toast(
+                r === 'owned'
+                  ? t('noads.owned')
+                  : r === 'pending'
+                    ? t('noads.pending')
+                    : r === 'none'
+                      ? t('noads.none')
+                      : t('noads.restore_failed'),
+              ),
+            ),
         tutorial: () => {
           this.ui.close('settings');
-          if (!fromGame) this.startTutorial();
+          this.startTutorial();
         },
         resetTips: () => {
           this.meta.tipsSeen = [];
@@ -348,9 +366,16 @@ export class GameController {
             back: () => this.ui.close('noads'),
           },
         ),
+        { onClose: () => this.afterNoAdsClosed() },
       );
     };
     await render();
+  }
+
+  /** Screens under "No ads" may show stale ad buttons after a purchase: rebuild them. */
+  private afterNoAdsClosed(): void {
+    if (this.ui.top === 'title') this.showTitle();
+    else if (this.ui.has('reprint') && this.engine?.state.phase === 'lost') this.showReprint();
   }
 
   private dailyAttemptsMax(date: string): number {
@@ -382,11 +407,16 @@ export class GameController {
           start: () => void this.startRun('daily'),
           resume: () => void this.resumeRun('daily'),
           extra: () =>
-            void this.rewarded('daily_attempt', () => {
-              this.dailyExtra[date] = (this.dailyExtra[date] ?? 0) + 1;
-              this.s.saves.saveJSON(KEYS.dailyExtra, this.dailyExtra);
-              void this.showDaily();
-            }),
+            void this.rewarded(
+              'daily_attempt',
+              () => {
+                this.dailyExtra[date] = (this.dailyExtra[date] ?? 0) + 1;
+                this.s.saves.saveJSON(KEYS.dailyExtra, this.dailyExtra);
+                void this.showDaily();
+              },
+              () => true,
+              date,
+            ),
           back: () => this.ui.close('daily'),
         },
       ),
@@ -421,6 +451,7 @@ export class GameController {
     this.engine = engine;
     this.runKind = kind;
     this.rewardedThisRun = false;
+    this.abandonedRun = false;
     this.recordBefore = this.meta.stats.bestScore;
     this.pendingUnlocks = { achievements: [], unlocks: [] };
     onRunStarted(this.meta);
@@ -438,7 +469,10 @@ export class GameController {
     this.ui.clear();
     this.engine = RunEngine.restore(state);
     this.runKind = kind;
-    this.rewardedThisRun = false;
+    // A rewarded ad watched before the app was closed still protects this run from interstitials.
+    this.rewardedThisRun =
+      (await this.s.saves.loadJSON<string | null>(KEYS.rewardedRun, null)) === state.seed;
+    this.abandonedRun = false;
     this.recordBefore = this.meta.stats.bestScore;
     this.enterGame();
     this.afterAction();
@@ -449,6 +483,7 @@ export class GameController {
 
   private enterGame(): void {
     this.inGame = true;
+    this.presenter.reset();
     // GDD §12.3: back in play cancels a drag, otherwise opens Pause — never minimizes mid-run.
     this.popGameBack ??= this.s.back.push(() => {
       if (this.input.dragging) this.input.cancelAll();
@@ -502,7 +537,6 @@ export class GameController {
   movePlate(from: number, to: number): void {
     if (!this.engine || from === to) return;
     this.handleEvents(this.engine.movePlate(from, to));
-    this.maybeTip('tip.second_plate');
   }
 
   sell(uid: number): void {
@@ -542,6 +576,7 @@ export class GameController {
       if (e.type === 'plate_added') {
         const n = engine.state.plates.length;
         if (n === 1) this.maybeTip('tip.first_plate');
+        if (n === 2) this.maybeTip('tip.second_plate');
         if (engine.hasReserve() && this.scene.setHasReserve(true)) this.relayout();
       }
     }
@@ -612,7 +647,7 @@ export class GameController {
       ? engine.specialFor(editionOf(s.contractIndex + 1))
       : null;
     if (s.plates.length >= BALANCE.slots) this.maybeTip('tip.full_rack');
-    const content = buildOffer(
+    const offer$ = buildOffer(
       {
         jobNumber: s.contractIndex + 1,
         cards: offer.cards,
@@ -656,7 +691,10 @@ export class GameController {
         },
       },
     );
-    this.ui.show('offer', content, { onBack: () => (this.openPause(), true) });
+    this.ui.show('offer', offer$.el, {
+      // Back leaves replace mode first, otherwise pauses (GDD §12.3).
+      onBack: () => (offer$.back() || this.openPause(), true),
+    });
   }
 
   /** Events without phase handling (e.g. a reroll keeps the offer open). */
@@ -786,6 +824,7 @@ export class GameController {
           abandon: async () => {
             if (!(await this.ui.confirm(t('pause.abandon_confirm'), t('common.yes'), t('common.no')))) return;
             this.ui.clear();
+            this.abandonedRun = true;
             const events = engine.abandon();
             this.handleEvents(events);
           },
@@ -823,6 +862,12 @@ export class GameController {
     const engine = this.engine;
     if (!engine) return;
     const c = engine.state.contract;
+    const endJob = async () => {
+      if (!(await this.ui.confirm(t('last.confirm'), t('common.yes'), t('common.no')))) return;
+      if (this.engine !== engine || engine.state.phase !== 'last_chance') return;
+      this.ui.close('last', false);
+      this.handleEvents(engine.acceptLoss());
+    };
     this.ui.show(
       'last',
       buildLastChance(
@@ -832,14 +877,11 @@ export class GameController {
             this.ui.close('last', false);
             this.sell(uid);
           },
-          end: async () => {
-            if (!(await this.ui.confirm(t('last.confirm'), t('common.yes'), t('common.no')))) return;
-            this.ui.close('last', false);
-            this.handleEvents(engine.acceptLoss());
-          },
+          end: () => void endJob(),
         },
       ),
-      { kind: 'sheet', dismissible: false, onBack: () => true },
+      // GDD §12.3: back on Last chance = "End the job without selling?".
+      { kind: 'sheet', dismissible: false, onBack: () => (void endJob(), true) },
     );
   }
 
@@ -901,7 +943,8 @@ export class GameController {
         },
         { accept, decline: () => void decline(), noAds: () => void this.showNoAds() },
       ),
-      { kind: 'sheet', dismissible: false, onBack: () => (void decline(), true) },
+      // A centred dialog, not a bottom sheet: the ad button must sit outside the tray zone (GDD §11.4).
+      { kind: 'dialog', dismissible: false, onBack: () => (void decline(), true) },
     );
   }
 
@@ -922,12 +965,14 @@ export class GameController {
         },
       }),
       {
+        // Back asks to finish; dismissing the question keeps the choice open (never auto-endless).
         onBack: () => {
           void this.ui
-            .confirm(t('victory.confirm'), t('victory.finish'), t('victory.endless'))
+            .confirm(t('victory.confirm'), t('victory.finish'), t('common.cancel'))
             .then((finish) => {
+              if (!finish || this.engine !== engine || engine.state.phase !== 'victory') return;
               this.ui.close('victory', false);
-              this.handleEvents(finish ? engine.endRun() : engine.continueEndless());
+              this.handleEvents(engine.endRun());
             });
           return true;
         },
@@ -953,10 +998,16 @@ export class GameController {
   private showResults(): void {
     const engine = this.engine;
     if (!engine) return;
+    if (this.tutorial && !this.tutorial.sandbox) {
+      // The tutorial's real first job ended (lost or abandoned): later runs are plain runs.
+      this.tutorial.dispose();
+      this.tutorial = null;
+    }
     const s = engine.state;
     const won = s.totals.contractsWon >= totalContracts();
     const lost = !won;
-    this.s.ads.onRunCompleted(lost);
+    // An abandoned run is neither a loss nor a completed run for ad pacing (GDD §11.3).
+    if (!this.abandonedRun) this.s.ads.onRunCompleted(lost);
     const daily = s.mode === 'daily' && s.dailyDate ? { grid: dailyGrid(s) } : null;
     const date = s.dailyDate;
     const canRetryDaily = Boolean(
@@ -966,13 +1017,18 @@ export class GameController {
     const unlocks = [...this.pendingUnlocks.unlocks];
     const achievements = this.pendingUnlocks.achievements.map((a) => t(`ach.${a}.name`));
     this.pendingUnlocks = { achievements: [], unlocks: [] };
-    const leave = async (trigger: 'new_run_button' | 'menu_button', next: () => void) => {
-      await this.s.ads.maybeShowInterstitial({
-        trigger,
-        resultsVisibleMs: performance.now() - this.resultsShownAt,
-        rewardedThisRun: this.rewardedThisRun,
-        noAds: this.s.iap.entitled,
-      });
+    let leaving = false;
+    const leave = async (button: 'new_run_button' | 'menu_button', next: () => void) => {
+      if (leaving) return; // one tap only: a second could start a run under the interstitial
+      leaving = true;
+      // Abandoning is the player's own exit, never an interstitial moment (GDD §11.3).
+      if (!this.abandonedRun)
+        await this.s.ads.maybeShowInterstitial({
+          trigger: button,
+          resultsVisibleMs: performance.now() - this.resultsShownAt,
+          rewardedThisRun: this.rewardedThisRun,
+          noAds: this.s.iap.entitled,
+        });
       next();
     };
     this.ui.show(
@@ -1037,6 +1093,7 @@ export class GameController {
     kind: RewardKind,
     grant: () => void,
     stillValid: () => boolean = () => true,
+    date?: string,
   ): Promise<void> {
     if (this.adInFlight) return;
     const safeGrant = () => {
@@ -1078,6 +1135,7 @@ export class GameController {
             kind,
             runKind: this.runKind,
             granted: false,
+            date,
           } satisfies PendingAd);
           await this.s.saves.flush();
           this.s.audio.suspend();
@@ -1088,6 +1146,7 @@ export class GameController {
             kind,
             runKind: this.runKind,
             granted: true,
+            date,
           } satisfies PendingAd);
         },
       });
@@ -1098,7 +1157,10 @@ export class GameController {
       this.s.saves.saveJSON(KEYS.pendingAd, null);
     }
     if (granted || result === 'rewarded') {
-      this.rewardedThisRun = true;
+      if (kind !== 'daily_attempt' && this.engine) {
+        this.rewardedThisRun = true;
+        this.s.saves.saveJSON(KEYS.rewardedRun, this.engine.state.seed);
+      }
       safeGrant();
     } else if (result === 'unavailable' && !cancelled) toast(t('ad.unavailable'));
   }
@@ -1108,7 +1170,14 @@ export class GameController {
     const p = await this.s.saves.loadJSON<PendingAd | null>(KEYS.pendingAd, null);
     if (!p) return;
     this.s.saves.saveJSON(KEYS.pendingAd, null);
-    if (!p.granted || !p.runKind) return;
+    if (!p.granted) return;
+    if (p.kind === 'daily_attempt' && p.date) {
+      // The reward event arrived but the process died before it was applied.
+      this.dailyExtra[p.date] = (this.dailyExtra[p.date] ?? 0) + 1;
+      this.s.saves.saveJSON(KEYS.dailyExtra, this.dailyExtra);
+      return;
+    }
+    if (!p.runKind) return;
     const state = await this.s.saves.loadRun(p.runKind);
     if (!state) return;
     const engine = RunEngine.restore(state);

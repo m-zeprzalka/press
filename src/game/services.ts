@@ -68,7 +68,8 @@ export interface IapService {
   refresh(): Promise<void>;
   product(): Promise<{ price: string } | null>;
   purchase(): Promise<'purchased' | 'pending' | 'cancelled' | 'already_owned' | 'error' | 'unavailable'>;
-  restore(): Promise<void>;
+  /** What the store said: drives the feedback toast (GDD §11.5). */
+  restore(): Promise<'owned' | 'pending' | 'none' | 'failed'>;
   onChange(cb: () => void): () => void;
 }
 
@@ -93,7 +94,8 @@ export interface Services {
   iap: IapService;
   lifecycle: LifecycleService;
   back: BackService;
-  share(text: string): Promise<'shared' | 'copied' | 'failed'>;
+  /** 'cancelled' = the player closed the share sheet (not an error). */
+  share(text: string): Promise<'shared' | 'copied' | 'cancelled' | 'failed'>;
   openUrl(url: string): void;
   setFullscreen(on: boolean): void;
 }

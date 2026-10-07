@@ -86,6 +86,15 @@ export class Presenter {
     private readonly hooks: PresenterHooks,
   ) {}
 
+  /** Forget the previous run: no "last print" breakdown, counter back to 0 × 0. */
+  reset(): void {
+    this.playToken++;
+    this.lastPrint = null;
+    this.lastP = 0;
+    this.lastM = 0;
+    this.scene.hud.setCounter(0, 0);
+  }
+
   /** Full refresh without animation (resume, new contract, layout change). */
   syncAll(engine: RunEngine): void {
     const s = engine.state;

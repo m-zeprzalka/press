@@ -40,6 +40,8 @@ function fatal(message: string): void {
   box.innerHTML = `<div class="column" style="text-align:center"><h1 class="riso-title">PRESS</h1><p></p></div>`;
   (box.querySelector('p') as HTMLParagraphElement).textContent = message;
   ui.append(box);
+  // launchAutoHide is off: without this the native splash would hide the message forever.
+  void SplashScreen.hide().catch(() => undefined);
 }
 
 async function boot(): Promise<void> {
@@ -110,7 +112,14 @@ async function boot(): Promise<void> {
       refresh: async () => void (await platform.iap.refresh()),
       product: () => platform.iap.product(),
       purchase: () => platform.iap.purchase(),
-      restore: async () => void (await platform.iap.restore()),
+      restore: async () => {
+        const before = platform.iap.snapshot.checkedAt;
+        const st = await platform.iap.restore();
+        if (st.entitled) return 'owned';
+        if (st.pending) return 'pending';
+        // No successful store query happened (offline, store error).
+        return st.checkedAt === before ? 'failed' : 'none';
+      },
       onChange: (cb) => platform.iap.onChange(() => cb()),
     },
     lifecycle: {
@@ -125,10 +134,7 @@ async function boot(): Promise<void> {
       setAdShowing: (on) => platform.lifecycle.setAdShowing(on),
     },
     back: platform.back,
-    share: async (text) => {
-      const r = await shareText(text, t('share.title'));
-      return r === 'cancelled' ? 'failed' : r;
-    },
+    share: (text) => shareText(text, t('share.title')),
     openUrl: (url) => {
       window.open(url, '_blank', 'noopener');
     },

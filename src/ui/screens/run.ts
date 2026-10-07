@@ -89,7 +89,14 @@ export interface OfferActions {
   reroll(kind: 'free' | 'ad'): void;
 }
 
-export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
+/** Lets the screen's back handler leave replace mode before anything else (GDD §12.3). */
+export interface OfferHandle {
+  el: HTMLElement;
+  /** Returns true when back was used to leave replace mode. */
+  back(): boolean;
+}
+
+export function buildOffer(v: OfferView, act: OfferActions): OfferHandle {
   const col = h('div', { class: 'column' });
   let selected = -1;
   let replaceMode = false;
@@ -248,7 +255,15 @@ export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
     col.append(rack);
   };
   render();
-  return col;
+  return {
+    el: col,
+    back: () => {
+      if (!replaceMode) return false;
+      replaceMode = false;
+      render();
+      return true;
+    },
+  };
 }
 
 // ------------------------------------------------------------------ plate sheet
@@ -283,7 +298,7 @@ export function buildPlateSheet(
       h(
         'div',
         { class: 'badge', style: 'align-self:center;background:var(--paper-shade)' },
-        t('plate.disabled'),
+        t('plate.disabled', { n: BALANCE.failureSheets }),
       ),
     );
   if (v.inert)

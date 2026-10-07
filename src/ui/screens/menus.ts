@@ -123,6 +123,10 @@ export function buildDaily(
 
 export interface SettingsView {
   settings: Settings;
+  /** Effective value (the OS preference when the player has not chosen). */
+  reduceMotion: boolean;
+  /** Opened from Pause: tutorial replay is only offered from the title. */
+  inGame: boolean;
   privacyOptions: boolean;
   iapAvailable: boolean;
   version: string;
@@ -171,7 +175,7 @@ export function buildSettings(
     ),
     row(
       t('settings.reduce_motion'),
-      toggle(s.reduceMotion ?? false, (x) => act.change({ reduceMotion: x }), t('settings.reduce_motion')),
+      toggle(v.reduceMotion, (x) => act.change({ reduceMotion: x }), t('settings.reduce_motion')),
     ),
     row(
       t('settings.controls'),
@@ -234,7 +238,7 @@ export function buildSettings(
       'div',
       { class: 'row' },
       button(t('settings.reset_tips'), act.resetTips, { small: true }),
-      button(t('settings.tutorial'), act.tutorial, { small: true }),
+      v.inGame ? null : button(t('settings.tutorial'), act.tutorial, { small: true }),
     ),
     h('div', { class: 'group-title' }, t('settings.group.privacy')),
   );
