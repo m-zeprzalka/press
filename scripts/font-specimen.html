@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PRESS Display specimen</title>
+    <!--
+      Visual check for scripts/build-font.ts. Open via the dev server:
+      npm run dev, then /scripts/font-specimen.html
+    -->
+    <style>
+      @font-face {
+        font-family: 'PRESS Display';
+        src: url('/fonts/press-display.otf') format('opentype');
+        font-display: block;
+      }
+      :root {
+        --paper: #f2ecdf;
+        --ink: #231f20;
+        --pink: #ff4fa3;
+        --blue: #2f6fd6;
+      }
+      body {
+        margin: 24px;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: system-ui, sans-serif;
+      }
+      h2 {
+        margin: 28px 0 8px;
+        font: 600 13px system-ui;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8d8a86;
+      }
+      .d {
+        font-family: 'PRESS Display', monospace;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+      }
+      .s96 {
+        font-size: 96px;
+      }
+      .s48 {
+        font-size: 48px;
+      }
+      .s64 {
+        font-size: 64px;
+      }
+      .figs {
+        font-size: 64px;
+        text-align: right;
+        display: inline-block;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent 0 38.4px,
+          rgb(47 111 214 / 0.12) 38.4px 76.8px
+        );
+      }
+      .clip {
+        display: inline-block;
+        font-size: 96px;
+        line-height: 1.2;
+        overflow: hidden;
+        outline: 2px solid var(--pink);
+        white-space: nowrap;
+      }
+      .logo {
+        position: relative;
+        font-size: 160px;
+        line-height: 1.2;
+        height: 192px;
+      }
+      .logo span {
+        position: absolute;
+        left: 0;
+        top: 0;
+        mix-blend-mode: multiply;
+      }
+      .logo .a {
+        color: var(--pink);
+      }
+      .logo .b {
+        color: var(--blue);
+        transform: translate(5px, 3px);
+      }
+      pre {
+        font:
+          13px ui-monospace,
+          monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="d logo"><span class="a">PRESS</span><span class="b">PRESS</span></div>
+
+    <h2>Character set, 96 px</h2>
+    <div class="d s96" id="set96"></div>
+
+    <h2>Character set, 48 px</h2>
+    <div class="d s48" id="set48"></div>
+
+    <h2>Samples, 64 px</h2>
+    <div class="d s64">
+      <div>PRESS</div>
+      <div>ZLECENIE 12/24</div>
+      <div>NAKŁAD 48&nbsp;210</div>
+      <div>ODBITKI × MNOŻNIK</div>
+      <div>ŻÓŁĆ GĘŚLĄ JAŹŃ</div>
+      <div>QUOTA 1&#8239;240 / 3&#8201;000</div>
+      <div>PRINTS × MULT</div>
+      <div>„DRUK” — “OK” ‘A’ … −5</div>
+      <div>żółć gęślą jaźń</div>
+    </div>
+
+    <h2>Tabular figures</h2>
+    <div class="d figs">
+      <div>0123456789</div>
+      <div>1111111111</div>
+      <div>48&nbsp;210</div>
+      <div>3&nbsp;000</div>
+      <div>+1 240</div>
+    </div>
+
+    <h2>Clip test: line-height 1.2, overflow hidden</h2>
+    <div class="d clip">ŻÓŁĆ ŚĄĘ</div>
+
+    <h2>Checks</h2>
+    <pre id="checks">waiting for fonts…</pre>
+
+    <script>
+      const CHARSET = [
+        'ABCDEFGHIJKLM',
+        'NOPQRSTUVWXYZ',
+        'ĄĆĘŁŃÓŚŹŻ',
+        '0123456789',
+        '.,:;!?-–—+×÷=−/%#\'"',
+        '()[]&*★•·@<>',
+        '↑↓←→▶⏸✓✕…„”“’‘',
+      ];
+      for (const id of ['set96', 'set48']) {
+        document.getElementById(id).innerHTML = CHARSET.map(
+          (l) => `<div>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</div>`,
+        ).join('');
+      }
+
+      document.fonts.load('32px "PRESS Display"').then(() => {
+        const width = (family) => {
+          const s = document.createElement('span');
+          s.style.cssText = `font: 64px ${family}; position: absolute; visibility: hidden; white-space: nowrap`;
+          s.textContent = 'MWM';
+          document.body.append(s);
+          const w = s.getBoundingClientRect().width;
+          s.remove();
+          return w;
+        };
+        const loaded = document.fonts.check('32px "PRESS Display"');
+        const own = width('"PRESS Display", monospace');
+        const fallback = width('monospace');
+        const box = document.querySelector('.clip').getBoundingClientRect();
+        // Ink of the accented capitals against a line-height 1.2 line box at 100px.
+        const ctx = document.createElement('canvas').getContext('2d');
+        ctx.font = '100px "PRESS Display"';
+        const m = ctx.measureText('ŻÓŁĆ ŚĄĘ');
+        const halfLeading = (120 - (m.fontBoundingBoxAscent + m.fontBoundingBoxDescent)) / 2;
+        const room = {
+          above: m.fontBoundingBoxAscent + halfLeading,
+          below: m.fontBoundingBoxDescent + halfLeading,
+        };
+        const result = {
+          fontsCheck: loaded,
+          mwmWidth: Math.round(own * 10) / 10,
+          fallbackMwmWidth: Math.round(fallback * 10) / 10,
+          widthDiffers: Math.abs(own - fallback) > 0.5,
+          clipBoxHeight: box.height,
+          inkAbove: m.actualBoundingBoxAscent,
+          inkBelow: m.actualBoundingBoxDescent,
+          lineBoxAbove: room.above,
+          lineBoxBelow: room.below,
+          inkFitsLineHeight12:
+            m.actualBoundingBoxAscent <= room.above && m.actualBoundingBoxDescent <= room.below,
+        };
+        document.getElementById('checks').textContent = JSON.stringify(result, null, 2);
+        console.log('SPECIMEN_CHECKS ' + JSON.stringify(result));
+        document.body.dataset.ready = '1';
+      });
+    </script>
+  </body>
+</html>

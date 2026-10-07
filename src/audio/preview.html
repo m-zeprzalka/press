@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PRESS audio preview</title>
+    <style>
+      :root {
+        --paper: #f2ecdf;
+        --ink: #1f1d1a;
+        --muted: #6b655c;
+        --line: #d6cdbb;
+        --accent: #ff48b0;
+        --ok: #00a95c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+        letter-spacing: 0.08em;
+      }
+      h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin: 20px 0 8px;
+      }
+      #status {
+        font-weight: 600;
+        color: var(--accent);
+      }
+      #status[data-ready='true'] {
+        color: var(--ok);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 8px;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      button {
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 1.5px solid var(--ink);
+        border-radius: 6px;
+        background: #fffaf0;
+        color: var(--ink);
+        font: inherit;
+        cursor: pointer;
+      }
+      button:active {
+        background: var(--accent);
+        color: #fff;
+      }
+      label {
+        display: grid;
+        grid-template-columns: 140px 1fr 48px;
+        align-items: center;
+        gap: 8px;
+        max-width: 560px;
+        margin: 4px 0;
+      }
+      output {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+      input[type='range'] {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PRESS — audio preview</h1>
+    <div>Engine: <span id="status">…</span> · keys 1–9 play the first SFX</div>
+
+    <h2>SFX</h2>
+    <label
+      >pitch (semitones) <input id="pitch" type="range" min="-12" max="24" step="1" value="0" /><output
+        for="pitch"
+      ></output
+    ></label>
+    <label
+      >intensity <input id="intensity" type="range" min="0" max="1" step="0.05" value="0.7" /><output
+        for="intensity"
+      ></output
+    ></label>
+    <label
+      >pan <input id="pan" type="range" min="-1" max="1" step="0.1" value="0" /><output for="pan"></output
+    ></label>
+    <div id="sfx" class="grid"></div>
+
+    <h2>Sequences</h2>
+    <div class="row">
+      <button id="demo-turn">turn: pickup → place → big print → approved</button>
+      <button id="demo-count">count-up (tick throttling)</button>
+      <button id="demo-streak">streak run (+ music intensity)</button>
+      <button id="demo-spam">40 prints / 200 ms (voice stealing)</button>
+    </div>
+
+    <h2>Music</h2>
+    <div class="row">
+      <button id="music-menu">menu</button>
+      <button id="music-game">game</button>
+      <button id="music-off">off</button>
+    </div>
+    <label
+      >intensity (SERIA)
+      <input id="music-intensity" type="range" min="0" max="1" step="0.05" value="0" /><output
+        for="music-intensity"
+      ></output
+    ></label>
+
+    <h2>Mixer &amp; lifecycle</h2>
+    <label
+      >music volume <input id="music-vol" type="range" min="0" max="1" step="0.05" value="0.8" /><output
+        for="music-vol"
+      ></output
+    ></label>
+    <label
+      >sfx volume <input id="sfx-vol" type="range" min="0" max="1" step="0.05" value="0.9" /><output
+        for="sfx-vol"
+      ></output
+    ></label>
+    <div class="row">
+      <button id="suspend">suspend (ad / background)</button>
+      <button id="resume">resume</button>
+    </div>
+
+    <script type="module" src="./preview.ts"></script>
+  </body>
+</html>

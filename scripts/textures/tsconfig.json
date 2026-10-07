@@ -1,0 +1,10 @@
+{
+  "//": "Browser-side texture generator (runs in headless Chromium): DOM lib, no Node types. Check with npx tsc -p scripts/textures/tsconfig.json",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["gen", "spec.ts", "pack.ts"]
+}
