@@ -637,11 +637,21 @@ body {
 }
 .setting {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   min-height: 52px;
+  padding-block: 4px;
   border-bottom: 1.5px dashed rgba(35, 31, 32, 0.25);
+}
+/* With large system text the control drops below its label instead of overflowing. */
+.setting > :first-child {
+  flex: 1 1 140px;
+}
+.setting > .seg {
+  margin-left: auto;
+  max-width: 100%;
 }
 .setting .hint {
   font-size: 0.8rem;
