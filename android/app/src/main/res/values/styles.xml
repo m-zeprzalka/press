@@ -15,6 +15,9 @@
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
         <item name="android:windowBackground">@color/press_paper</item>
+        <!-- Paper under transparent system bars when "Full screen" is off. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
     <!-- Android 12+ splash (AndroidX core-splashscreen also back-ports it): paper + PRESS mark. -->

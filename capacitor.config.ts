@@ -18,7 +18,8 @@ const config: CapacitorConfig = {
       style: 'LIGHT',
     },
     SplashScreen: {
-      launchShowDuration: 0,
+      // Keep the splash until main.ts hides it after the first frame (or on a fatal error).
+      launchShowDuration: 10000,
       launchAutoHide: false,
       backgroundColor: '#F2ECDF',
       showSpinner: false,

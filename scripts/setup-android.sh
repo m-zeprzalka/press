@@ -46,7 +46,8 @@ official() {
   rm -rf "$tmp"
   local sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
   echo "→ Accepting licenses (review them at https://developer.android.com/studio/terms)"
-  yes | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
+  # `yes` dies of SIGPIPE when sdkmanager exits; that 141 must not abort the script (pipefail).
+  (yes || true) | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
   echo "→ Installing $PLATFORM, $BUILD_TOOLS, platform-tools"
   "$sdkmanager" --sdk_root="$ANDROID_HOME" "$PLATFORM" "$BUILD_TOOLS" "platform-tools"
 }

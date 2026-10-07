@@ -58,6 +58,8 @@ export const BALANCE = {
   rarityLateFromEdition: 4,
   /** Failure modifier: disabled plate weights by rarity. */
   failureWeights: { common: 1, rare: 2, legendary: 3 } as ByRarity,
+  /** Failure modifier: the disabled plate is repaired once this many sheets of the job are used. */
+  failureSheets: 6,
 
   // --- Generator (§4) ---
   colorAffinityWeight: 1.0,

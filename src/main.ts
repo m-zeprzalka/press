@@ -146,12 +146,19 @@ async function boot(): Promise<void> {
   await platform.boot();
 
   if (native) {
-    try {
-      const { scale } = await PressSystem.getTextScale();
-      root.style.setProperty('--fs', String(scale || 1));
-    } catch {
-      /* web or old build */
-    }
+    const applyTextScale = async () => {
+      try {
+        const { scale } = await PressSystem.getTextScale();
+        root.style.setProperty('--fs', String(scale || 1));
+      } catch {
+        /* web or old build */
+      }
+    };
+    await applyTextScale();
+    // fontScale is in configChanges (no activity restart): re-read it whenever we come back.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) void applyTextScale();
+    });
   }
 
   // ---- assets & scene

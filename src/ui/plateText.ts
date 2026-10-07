@@ -57,9 +57,6 @@ export function modifierName(m: Modifier): string {
 
 export function modifierDesc(m: Modifier): string {
   if (m.id === 'out_of_ink') return t(`mod.out_of_ink.desc.${m.ink ?? 0}`);
-  if (m.id === 'rush') return t('mod.rush.desc', { n: BALANCE.rushSheets, base: BALANCE.baseSheets });
-  if (m.id === 'big_format')
-    return t('mod.big_format.desc', { n: BALANCE.bigFormatSheets, base: BALANCE.baseSheets });
-  if (m.id === 'failure') return t('mod.failure.desc', { n: BALANCE.failureSheets });
+  if (m.id === 'rush') return t('mod.rush.desc', { n: BALANCE.rushSheets });
   return t(`mod.${m.id}.desc`);
 }

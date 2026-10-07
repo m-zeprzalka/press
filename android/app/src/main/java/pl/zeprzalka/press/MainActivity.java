@@ -17,6 +17,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(PressSystemPlugin.class);
         super.onCreate(savedInstanceState);
+        // No WebView (provider missing/updating): Capacitor shows its fallback screen, no bridge.
+        if (getBridge() == null || getBridge().getWebView() == null) return;
 
         WebView webView = getBridge().getWebView();
         // The game handles text scaling itself (GDD §17): keep CSS px = dp.

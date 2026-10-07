@@ -68,6 +68,8 @@ jobs:
       - run: npm ci
       # Debug builds always use Google's test ad units (src/config.ts defaults).
       - run: npm run build
+        env:
+          VITE_APP_VERSION: 0.0.${{ github.run_number }}-debug
       - run: npx cap sync android
       - name: Assemble debug APK
         working-directory: android
@@ -111,13 +113,19 @@ jobs:
           for v in ADMOB_APP_ID VITE_ADMOB_REWARDED_ID VITE_ADMOB_INTERSTITIAL_ID; do
             if [ -z "${!v}" ]; then echo "::error::Missing production ad secret $v (see docs/RELEASE.md)"; exit 1; fi
           done
+          # App ID uses "~", ad units use "/": a swap would crash the app on launch.
+          [[ "$ADMOB_APP_ID" =~ ^ca-app-pub-[0-9]{16}~[0-9]{10}$ ]] || { echo "::error::ADMOB_APP_ID must look like ca-app-pub-0000000000000000~0000000000"; exit 1; }
+          for v in VITE_ADMOB_REWARDED_ID VITE_ADMOB_INTERSTITIAL_ID; do
+            [[ "${!v}" =~ ^ca-app-pub-[0-9]{16}/[0-9]{10}$ ]] || { echo "::error::$v must look like ca-app-pub-0000000000000000/0000000000"; exit 1; }
+          done
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       - run: npm ci
-      - run: npm run build
+      - name: Build web bundle (version from tag)
+        run: VITE_APP_VERSION="${GITHUB_REF_NAME#v}" npm run build
       - name: Guard — no Google test ad IDs in a production web bundle
         run: |
           if grep -rq "ca-app-pub-3940256099942544" dist/; then
