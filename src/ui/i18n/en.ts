@@ -202,6 +202,7 @@ export const EN: Record<string, string> = {
   'reprint.body_jam': 'The press jammed. We clear two rows and two columns — keep printing.',
   'reprint.body_quota': 'Out of sheets. Get +{n} sheets and keep your streak. Missing: {gap}.',
   'reprint.free': 'Reprint on the house',
+  'reprint.free_sub': 'on the house',
   'reprint.free_note': "Next time it's a short ad.",
   'reprint.ad': 'Ad → Reprint',
   'reprint.buyer': 'Reprint',

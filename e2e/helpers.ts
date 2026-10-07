@@ -132,7 +132,8 @@ export async function playToResults(
     }
     if (scr === 'reprint') {
       stats.reprints++;
-      await tap(page, /on the house/i);
+      await page.waitForTimeout(650);
+      await page.getByRole('button', { name: 'Reprint on the house' }).click();
       continue;
     }
     if (scr === 'victory') {

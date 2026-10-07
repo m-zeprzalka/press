@@ -488,13 +488,14 @@ export function buildReprint(
         : t('reprint.body_quota', { n: BALANCE.continueSheets, gap: fmtInt(v.gap) }),
     ),
   );
-  const label =
-    v.mode === 'free' ? t('reprint.free') : v.mode === 'buyer' ? t('reprint.buyer') : t('reprint.ad');
+  const label = v.mode === 'ad' ? t('reprint.ad') : t('reprint.buyer');
   const accept = button(label, act.accept, {
     variant: 'primary',
     wide: true,
     armDelayMs: 600,
     disabled: v.mode === 'ad' && !v.adAvailable,
+    sub: v.mode === 'free' ? t('reprint.free_sub') : undefined,
+    label: v.mode === 'free' ? t('reprint.free') : undefined,
   });
   if (v.mode === 'ad') accept.prepend(adMark());
   const decline = button(t('reprint.decline'), act.decline, { wide: true, armDelayMs: 600 });
