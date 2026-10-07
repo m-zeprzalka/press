@@ -35,14 +35,15 @@ const GDD_INCOMPATIBLE: ReadonlyArray<readonly [ModifierId, ModifierId]> = [
   ['jam', 'leftover'],
   ['wet_ink', 'rush'],
   ['jam', 'rows_only'],
+  ['rush', 'big_format'],
 ];
 const gddIncompatible = (a: ModifierId, b: ModifierId): boolean =>
   GDD_INCOMPATIBLE.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 
-/** Q(j) = round2(400 × 1.30^j), GDD §6.2, j = 0..23. */
+/** Q(j) = round2(1000 × 1.38^j), GDD §6.2 / §19.1, j = 0..23. */
 const GDD_QUOTA_CURVE = [
-  400, 520, 680, 880, 1100, 1500, 1900, 2500, 3300, 4200, 5500, 7200, 9300, 12000, 16000, 20000, 27000, 35000,
-  45000, 58000, 76000, 99000, 130000, 170000,
+  1000, 1400, 1900, 2600, 3600, 5000, 6900, 9500, 13000, 18000, 25000, 35000, 48000, 66000, 91000, 130000,
+  170000, 240000, 330000, 450000, 630000, 870000, 1200000, 1600000,
 ];
 
 function positions(cells: Cells, value: number): Array<[number, number]> {
@@ -67,10 +68,11 @@ describe('balance tables match the GDD (§6.1, §6.2, §7)', () => {
     expect(BALANCE.editions).toBe(8);
     expect(BALANCE.contractsPerEdition).toBe(3);
     expect(totalContracts()).toBe(24);
-    expect(BALANCE.quotaStart).toBe(400);
-    expect(BALANCE.quotaGrowth).toBe(1.3);
+    expect(BALANCE.quotaStart).toBe(1000);
+    expect(BALANCE.quotaGrowth).toBe(1.38);
     expect(BALANCE.baseSheets).toBe(20);
     expect(BALANCE.rushSheets).toBe(14);
+    expect(BALANCE.bigFormatSheets).toBe(12);
     expect(BALANCE.doubleModifierFromEdition).toBe(7);
   });
 
@@ -101,13 +103,13 @@ describe('balance tables match the GDD (§6.1, §6.2, §7)', () => {
     });
     expect(BALANCE.modifierQuota).toEqual({
       rush: 0.8,
-      big_format: 1.0,
-      jam: 0.85,
-      wet_ink: 0.8,
+      big_format: 0.85,
+      jam: 0.7,
+      wet_ink: 0.75,
       out_of_ink: 0.85,
-      leftover: 0.9,
-      failure: 0.9,
-      short_tray: 0.9,
+      leftover: 0.85,
+      failure: 0.85,
+      short_tray: 0.85,
       rows_only: 0.75,
     });
   });
@@ -151,12 +153,12 @@ describe('compatible', () => {
         if (a < b && compatible(a, b)) compatiblePairs++;
       }
     }
-    expect(compatiblePairs).toBe(36 - 5);
+    expect(compatiblePairs).toBe(36 - GDD_INCOMPATIBLE.length);
   });
 });
 
 describe('quota curve (GDD §6.2)', () => {
-  it('Q(j) = round2(400 × 1.30^j) for j = 0..23', () => {
+  it('Q(j) = round2(1000 × 1.38^j) for j = 0..23', () => {
     for (let j = 0; j < 24; j++) {
       expect(niceRound(baseQuota(j))).toBe(GDD_QUOTA_CURVE[j]);
       if (!isSpecialIndex(j)) expect(quotaFor(j, [])).toBe(GDD_QUOTA_CURVE[j]);
@@ -167,8 +169,8 @@ describe('quota curve (GDD §6.2)', () => {
     for (let j = 0; j < 60; j++) {
       expect(baseQuota(j)).toBe(BALANCE.quotaStart * ipow(BALANCE.quotaGrowth, j));
     }
-    expect(baseQuota(0)).toBe(400);
-    expect(baseQuota(1)).toBe(400 * 1.3);
+    expect(baseQuota(0)).toBe(BALANCE.quotaStart);
+    expect(baseQuota(1)).toBe(BALANCE.quotaStart * BALANCE.quotaGrowth);
   });
 
   it('the rounded curve is strictly increasing with Q(j+1)/Q(j) ≥ 1.15 for every j', () => {
@@ -195,8 +197,8 @@ describe('quota curve (GDD §6.2)', () => {
 
   it('contractSpec strips modifiers from regular jobs before computing the quota', () => {
     // quotaFor applies whatever modifiers it is given; contractSpec strips them from regular jobs.
-    expect(contractSpec(0, mods('rush')).quota).toBe(400);
-    expect(contractSpec(1, mods('rows_only', 'jam')).quota).toBe(520);
+    expect(contractSpec(0, mods('rush')).quota).toBe(GDD_QUOTA_CURVE[0]);
+    expect(contractSpec(1, mods('rows_only', 'jam')).quota).toBe(GDD_QUOTA_CURVE[1]);
   });
 
   it('special jobs apply specialFactor × Π per-modifier factors, rounded once', () => {
@@ -216,12 +218,13 @@ describe('quota curve (GDD §6.2)', () => {
   });
 
   it('special quotas: concrete values', () => {
-    expect(quotaFor(2, [])).toBe(niceRound(676 * BALANCE.specialFactor));
-    expect(quotaFor(2, mods('big_format'))).toBe(680); // k = 1.00
-    expect(quotaFor(2, mods('rows_only'))).toBe(510); // 676 × 0.75 = 507
-    expect(quotaFor(2, mods('rush'))).toBe(540); // 676 × 0.80 = 540.8
-    expect(quotaFor(20, mods('rush', 'jam'))).toBe(52000); // 76019.6 × 0.8 × 0.85 = 51693
-    expect(quotaFor(23, mods('rows_only', 'wet_ink'))).toBe(100000); // 167015 × 0.6 = 100209
+    expect(quotaFor(2, [])).toBe(niceRound(1904.4 * BALANCE.specialFactor));
+    expect(quotaFor(2, mods('big_format'))).toBe(1600); // 1904.4 × 0.85 = 1618.7
+    expect(quotaFor(2, mods('rows_only'))).toBe(1400); // 1904.4 × 0.75 = 1428.3
+    expect(quotaFor(2, mods('rush'))).toBe(1500); // 1904.4 × 0.80 = 1523.5
+    expect(quotaFor(2, mods('jam'))).toBe(1300); // 1904.4 × 0.70 = 1333.1
+    expect(quotaFor(20, mods('rush', 'jam'))).toBe(350000); // 627454 × 0.8 × 0.7 = 351374
+    expect(quotaFor(23, mods('rows_only', 'wet_ink'))).toBe(930000); // 1648994 × 0.5625 = 927559
   });
 
   it('modifier factors < 1 never raise a special above its unmodified quota', () => {
@@ -232,14 +235,14 @@ describe('quota curve (GDD §6.2)', () => {
     }
   });
 
-  it('endless mode keeps growing ×1.30 per job', () => {
+  it('endless mode keeps growing ×1.38 per job', () => {
     for (let j = 24; j < 120; j++) {
-      // 400 × (1.3^j) vs (400 × 1.3^(j-1)) × 1.3 may differ in the last ulp (float associativity).
+      // q × (g^j) vs (q × g^(j-1)) × g may differ in the last ulp (float associativity).
       expect(baseQuota(j) / baseQuota(j - 1)).toBeCloseTo(BALANCE.quotaGrowth, 12);
     }
-    expect(quotaFor(24, [])).toBe(220000);
-    expect(quotaFor(25, [])).toBe(280000);
-    expect(quotaFor(27, [])).toBe(480000);
+    expect(quotaFor(24, [])).toBe(2300000);
+    expect(quotaFor(25, [])).toBe(3100000);
+    expect(quotaFor(27, [])).toBe(6000000);
     const reg = regularIndices(150).filter((j) => j >= 23);
     for (let k = 0; k + 1 < reg.length; k++) {
       const q0 = contractSpec(reg[k] as number, []).quota;
@@ -323,7 +326,7 @@ describe('editionModifiers (GDD §7, §18.4 stream "modifiers")', () => {
         pairs.add([a, b].sort().join('+'));
       }
     }
-    expect(pairs.size).toBe(31);
+    expect(pairs.size).toBe(36 - GDD_INCOMPATIBLE.length);
   });
 
   it('only out_of_ink carries an ink, always in 0..4', () => {
@@ -444,14 +447,19 @@ describe('contractSpec', () => {
     }
   });
 
-  it('rush → 14 sheets, every other modifier → 20 sheets', () => {
+  it('rush → 14 sheets, large format → 12 sheets, every other modifier → 20 sheets', () => {
     for (let e = 1; e <= 10; e++) {
       const j = specialIndexOf(e);
       expect(contractSpec(j, mods('rush')).sheets).toBe(14);
       expect(contractSpec(j, mods('rush', 'jam')).sheets).toBe(14);
       expect(contractSpec(j, mods('jam', 'rush')).sheets).toBe(14);
+      expect(contractSpec(j, mods('big_format')).sheets).toBe(12);
+      expect(contractSpec(j, mods('jam', 'big_format')).sheets).toBe(12);
+      // Never drawn together (§7 exclusions); the shorter job wins if given both.
+      expect(contractSpec(j, mods('rush', 'big_format')).sheets).toBe(12);
       expect(contractSpec(j, []).sheets).toBe(20);
-      for (const m of MODIFIER_IDS) if (m !== 'rush') expect(contractSpec(j, mods(m)).sheets).toBe(20);
+      for (const m of MODIFIER_IDS)
+        if (m !== 'rush' && m !== 'big_format') expect(contractSpec(j, mods(m)).sheets).toBe(20);
     }
   });
 
@@ -486,8 +494,8 @@ describe('contractSpec', () => {
 
 describe('contractBoard (GDD §7 jam / leftover, §18.4 stream "board")', () => {
   const SEEDS = Array.from({ length: 400 }, (_, i) => `board-${i}`);
-  const JAM_TIER: Record<number, number> = { 1: 2, 2: 2, 3: 3, 4: 3, 5: 3, 6: 4, 7: 4, 8: 4, 9: 4, 12: 4 };
-  // GDD gives 8/10/12 without editions; balance.ts uses the jam tiers (e1–2/e3–5/e6+), so 8 only shows up
+  const JAM_TIER: Record<number, number> = { 1: 5, 2: 5, 3: 5, 4: 5, 5: 5, 6: 5, 7: 5, 8: 5, 9: 5, 12: 5 };
+  // GDD gives 8/10/12 without editions; balance.ts uses edition tiers (e1–2/e3–5/e6+), so 8 only shows up
   // when leftover is forced onto edition 1–2 (it is drawn from edition 3 on).
   const LEFTOVER_TIER: Record<number, number> = {
     1: 8,
@@ -520,7 +528,7 @@ describe('contractBoard (GDD §7 jam / leftover, §18.4 stream "board")', () => 
     }
   });
 
-  it('jam: 2/3/4 rivets (e1–2/e3–5/e6+), ≤ 1 per row and column, never on the outer ring', () => {
+  it('jam: 5 rivets, ≤ 1 per row and column, never on the outer ring', () => {
     for (const [eStr, n] of Object.entries(JAM_TIER)) {
       const e = Number(eStr);
       const spec = contractSpec(specialIndexOf(e), mods('jam'));

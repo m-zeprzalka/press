@@ -12,6 +12,7 @@ import { EMPTY, JAM, LEAD, idx, newCells, type Cells } from './board';
 import { editionModifiers, quotaFor, totalContracts, type Modifier } from './contracts';
 import {
   MATRIX_IDS,
+  MX,
   createInstance,
   matrixDef,
   sellValue,
@@ -218,6 +219,20 @@ function primeWin(s: RunState, sheetsUsedBefore = 0): void {
   s.contract.progress = s.contract.spec.quota - 1;
   s.contract.sheetsUsed = sheetsUsedBefore;
   s.contract.sheetsLeft = Math.max(s.contract.sheetsLeft, 1);
+}
+
+/**
+ * Runs `fn` with an easy quota curve: the scripted test player is weak, and flow/determinism
+ * tests must reach offers and later jobs whatever the tuned curve is.
+ */
+function withEasyQuota<T>(fn: () => T): T {
+  const quotaStart = BALANCE.quotaStart;
+  BALANCE.quotaStart = 100;
+  try {
+    return fn();
+  } finally {
+    BALANCE.quotaStart = quotaStart;
+  }
 }
 
 /** Raises the quota so that test prints never end the contract. */
@@ -641,10 +656,11 @@ describe('winning a contract (GDD §6.1, §6.3)', () => {
     });
     e.place(0, 7, 7);
     const [jm, gb, ar] = e.state.plates as [MatrixInstance, MatrixInstance, MatrixInstance];
-    expect(jm.state.mult).toBe(2);
+    expect(jm.state.mult).toBe(MX.journeymanStart + MX.journeymanStep);
     expect(gb.state.x).toBe(1.75);
-    expect(ar.state.bonus).toBe(1); // afterPrint growth: +1 per printed line
+    expect(ar.state.bonus).toBe(MX.archiveStep); // afterPrint growth: +archiveStep per printed line
 
+    // Won before the repair (sheet failureSheets): the failed plate does not grow.
     const d = craft(start(), (s) => {
       primeWin(s);
       const [j, g] = setPlates(s, ['journeyman', 'gutenberg']);
@@ -652,8 +668,36 @@ describe('winning a contract (GDD §6.1, §6.3)', () => {
       void g;
     });
     d.place(0, 7, 7);
-    expect((d.state.plates[0] as MatrixInstance).state.mult).toBe(1);
+    expect((d.state.plates[0] as MatrixInstance).state.mult).toBe(MX.journeymanStart);
     expect((d.state.plates[1] as MatrixInstance).state.x).toBe(1.75);
+
+    // Won after the repair: it grows like any other plate.
+    const r = craft(start(), (s) => {
+      primeWin(s, BALANCE.failureSheets);
+      const [j] = setPlates(s, ['journeyman']);
+      s.contract.disabledUid = (j as MatrixInstance).uid;
+    });
+    r.place(0, 7, 7);
+    expect((r.state.plates[0] as MatrixInstance).state.mult).toBe(MX.journeymanStart + MX.journeymanStep);
+  });
+
+  it('Plate Failure: the failed plate is out of order until failureSheets sheets of the job are used', () => {
+    const e = craft(start(), (s) => {
+      bigQuota(s);
+      const [p] = setPlates(s, ['proof']);
+      s.contract.disabledUid = (p as MatrixInstance).uid;
+      s.contract.sheetsUsed = BALANCE.failureSheets - 1;
+    });
+    const proof = e.state.plates[0] as MatrixInstance;
+    expect(e.isEnabled(proof)).toBe(false);
+    expect(e.enabledPlates()).toEqual([]);
+    const pos = e.validPositions(0)[0] as [number, number];
+    e.place(0, pos[0], pos[1]);
+    expect(e.state.contract.sheetsUsed).toBe(BALANCE.failureSheets);
+    expect(e.isEnabled(proof)).toBe(true);
+    expect(e.enabledPlates().map((p) => p.uid)).toEqual([proof.uid]);
+    // The draw itself is unchanged: the job still records which plate failed.
+    expect(e.state.contract.disabledUid).toBe(proof.uid);
   });
 
   const bonus = (sheetsUsedAfter: number, specSheets = 20, extra?: (s: RunState) => void) => {
@@ -666,19 +710,26 @@ describe('winning a contract (GDD §6.1, §6.3)', () => {
     return { won, offer: e.state.offer as OfferState };
   };
 
-  it('early bonus: ≤ 60% of base sheets → 4 cards; ≤ 40% → rare guaranteed', () => {
+  it('early bonus: ≤ 50% of base sheets → 4 cards; ≤ 30% → rare guaranteed', () => {
+    expect([BALANCE.earlyShare4Cards, BALANCE.earlyShareRare]).toEqual([0.5, 0.3]);
     const table: Array<[number, number, number, boolean]> = [
       // [used, base, cards, guaranteeRare]
       [1, 20, 4, true],
-      [8, 20, 4, true],
-      [9, 20, 4, false],
-      [12, 20, 4, false],
-      [13, 20, 3, false],
+      [6, 20, 4, true],
+      [7, 20, 4, false],
+      [10, 20, 4, false],
+      [11, 20, 3, false],
       [20, 20, 3, false],
-      [5, 14, 4, true],
-      [6, 14, 4, false],
-      [8, 14, 4, false],
-      [9, 14, 3, false],
+      // Rush (14 base sheets)
+      [4, 14, 4, true],
+      [5, 14, 4, false],
+      [7, 14, 4, false],
+      [8, 14, 3, false],
+      // Large Format (12 base sheets)
+      [3, 12, 4, true],
+      [4, 12, 4, false],
+      [6, 12, 4, false],
+      [7, 12, 3, false],
     ];
     for (const [used, base, cards, rare] of table) {
       const { won, offer } = bonus(used, base);
@@ -703,8 +754,8 @@ describe('winning a contract (GDD §6.1, §6.3)', () => {
       s.contract.sheetsLeft = 13;
     });
     expect(won.cards).toBe(3);
-    // 8 used of 20 → rare guaranteed regardless of granted sheets.
-    expect(bonus(8, 20, (s) => (s.contract.sheetsGranted = 40)).won.guaranteeRare).toBe(true);
+    // 6 used of 20 → rare guaranteed regardless of granted sheets.
+    expect(bonus(6, 20, (s) => (s.contract.sheetsGranted = 40)).won.guaranteeRare).toBe(true);
   });
 
   it('a guaranteed offer always contains a rare or legendary card', () => {
@@ -735,9 +786,9 @@ describe('winning a contract (GDD §6.1, §6.3)', () => {
       });
       return ev(e.place(0, 7, 7), 'contract_won');
     };
-    expect(win(11)).toMatchObject({ sheetsUsed: 12, cards: 4, guaranteeRare: false });
-    expect(win(12)).toMatchObject({ sheetsUsed: 13, cards: 3, guaranteeRare: false }); // 13/26 = 50% would be ≤ 60%
-    expect(win(8)).toMatchObject({ sheetsUsed: 9, cards: 4, guaranteeRare: false }); // 9/26 ≈ 35% would be ≤ 40%
+    expect(win(9)).toMatchObject({ sheetsUsed: 10, cards: 4, guaranteeRare: false });
+    expect(win(10)).toMatchObject({ sheetsUsed: 11, cards: 3, guaranteeRare: false }); // 11/26 ≈ 42% would be ≤ 50%
+    expect(win(6)).toMatchObject({ sheetsUsed: 7, cards: 4, guaranteeRare: false }); // 7/26 ≈ 27% would be ≤ 30%
   });
 });
 
@@ -755,6 +806,10 @@ describe('sheets (GDD §6.3, §8.2 Ream, §9.2 sales)', () => {
 
     const t = atOffer({ plates: ['ream'] });
     expect(ev(t.takeOffer(0), 'contract_started').sheets).toBe(23);
+
+    // Type Case: +2 sheets every job, like Ream's +3.
+    const c = atOffer({ plates: ['type_case'] });
+    expect(ev(c.skipOffer(), 'contract_started').sheets).toBe(20 + MX.typeCaseSheets + BALANCE.skipSheets);
   });
 
   it('skip gives +3 sheets to the next contract only', () => {
@@ -1211,7 +1266,7 @@ describe('offers (GDD §8.1, §9.1, §18.4)', () => {
     }
   });
 
-  it('first-card rarities follow 64/30/6 (58/32/10 from edition 4)', () => {
+  it('first-card rarities follow 64/30/6 (50/35/15 from edition 4)', () => {
     const count = (contractIndex: number) => {
       const e = craft(start(), (s) => (s.contractIndex = contractIndex));
       const n: Record<string, number> = { common: 0, rare: 0, legendary: 0 };
@@ -1227,9 +1282,9 @@ describe('offers (GDD §8.1, §9.1, §18.4)', () => {
     expect(Math.abs(early[1]! - 0.3)).toBeLessThan(0.04);
     expect(Math.abs(early[2]! - 0.06)).toBeLessThan(0.02);
     const late = count(9); // offer before a contract of edition 4
-    expect(Math.abs(late[0]! - 0.58)).toBeLessThan(0.04);
-    expect(Math.abs(late[1]! - 0.32)).toBeLessThan(0.04);
-    expect(Math.abs(late[2]! - 0.1)).toBeLessThan(0.02);
+    expect(Math.abs(late[0]! - 0.5)).toBeLessThan(0.04);
+    expect(Math.abs(late[1]! - 0.35)).toBeLessThan(0.04);
+    expect(Math.abs(late[2]! - 0.15)).toBeLessThan(0.02);
   });
 
   it('an exhausted rarity pool falls back to a lower rarity', () => {
@@ -1391,7 +1446,7 @@ describe('offers (GDD §8.1, §9.1, §18.4)', () => {
     expect(seen).toBe(true);
     const t = craft(e, (s) => ((s.offer as OfferState).cards = ['journeyman']));
     t.takeOffer(0);
-    expect((t.state.plates[0] as MatrixInstance).state.mult).toBe(1);
+    expect((t.state.plates[0] as MatrixInstance).state.mult).toBe(MX.journeymanStart);
   });
 
   it('a full rack requires replaceUid; the replaced plate’s sheets go to the next contract', () => {
@@ -1821,12 +1876,14 @@ describe('determinism and saves (GDD §12.4, §18.4)', () => {
 
   it('the scripted runs exercise the whole loop', () => {
     const seen = new Set<string>();
-    for (const seed of ['flow-1', 'flow-2', 'flow-3', 'flow-4']) {
-      const { engine } = RunEngine.create({ seed, startPlates: ['type_case'] });
-      for (let k = 0; k < 2000 && engine.state.phase !== 'over'; k++)
-        for (const e of scriptStep(engine, k)) seen.add(e.type);
-      expect(engine.state.phase).toBe('over');
-    }
+    withEasyQuota(() => {
+      for (const seed of ['flow-1', 'flow-2', 'flow-3', 'flow-4']) {
+        const { engine } = RunEngine.create({ seed, startPlates: ['type_case'] });
+        for (let k = 0; k < 2000 && engine.state.phase !== 'over'; k++)
+          for (const e of scriptStep(engine, k)) seen.add(e.type);
+        expect(engine.state.phase).toBe('over');
+      }
+    });
     for (const t of [
       'contract_started',
       'dealt',
@@ -1854,18 +1911,20 @@ describe('determinism and saves (GDD §12.4, §18.4)', () => {
   });
 
   it('snapshot → restore mid-run continues identically', () => {
-    for (const seed of ['mid-a', 'mid-b']) {
-      const { engine: a } = RunEngine.create({ seed, startPlates: ['type_case'] });
-      runScript(a, 120);
-      const snap = a.snapshot();
-      const b = RunEngine.restore(JSON.parse(JSON.stringify(snap)) as RunState);
-      expect(b.snapshot()).toEqual(snap);
-      const la = runScript(a, 300, 120);
-      const lb = runScript(b, 300, 120);
-      expect(la.length).toBeGreaterThan(0);
-      expect(lb).toEqual(la);
-      expect(b.snapshot()).toEqual(a.snapshot());
-    }
+    withEasyQuota(() => {
+      for (const seed of ['mid-a', 'mid-b']) {
+        const { engine: a } = RunEngine.create({ seed, startPlates: ['type_case'] });
+        runScript(a, 120);
+        const snap = a.snapshot();
+        const b = RunEngine.restore(JSON.parse(JSON.stringify(snap)) as RunState);
+        expect(b.snapshot()).toEqual(snap);
+        const la = runScript(a, 300, 120);
+        const lb = runScript(b, 300, 120);
+        expect(la.length).toBeGreaterThan(0);
+        expect(lb).toEqual(la);
+        expect(b.snapshot()).toEqual(a.snapshot());
+      }
+    });
   });
 
   it('snapshot and restore copy the state', () => {

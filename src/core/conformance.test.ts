@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { BLIND, EMPTY, JAM, idx, newCells, type Cells } from './board';
+import { BALANCE } from './config/balance';
 import {
   compatible,
   editionModifiers,
@@ -253,7 +254,9 @@ describe('verified rules and edge cases', () => {
         const [m1, m2] = spec.modifiers as [Modifier, Modifier];
         expect(compatible(m1.id, m2.id)).toBe(true);
         if (spec.modifiers.some((m) => m.id === 'jam'))
-          expect(e.state.cells.filter((v) => v === JAM)).toHaveLength(4);
+          expect(e.state.cells.filter((v) => v === JAM)).toHaveLength(
+            BALANCE.jamCount[BALANCE.jamCount.length - 1] as number,
+          );
       } else {
         if (lastRegular !== null && !isSpecialIndex(j - 1))
           expect(spec.quota / lastRegular).toBeGreaterThanOrEqual(1.15);

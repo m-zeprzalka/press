@@ -272,8 +272,10 @@ export class RunEngine {
     return this.s.contract.spec;
   }
 
+  /** False for the Plate Failure plate until it is repaired (GDD §7: after `failureSheets` sheets). */
   isEnabled(inst: MatrixInstance): boolean {
-    return this.s.contract.disabledUid !== inst.uid;
+    const c = this.s.contract;
+    return c.disabledUid !== inst.uid || c.sheetsUsed >= BALANCE.failureSheets;
   }
 
   enabledPlates(): MatrixInstance[] {

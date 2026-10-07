@@ -3,12 +3,11 @@
  * (`--set quotaGrowth=1.35,MX.gutenbergStep=0.2,modifierQuota.rush=0.7,jamCount.0=3`).
  *
  * Keys without a prefix resolve to BALANCE first, then MX. A few MX values are copied into
- * plate definitions when matrices.ts loads (Ream sheets, Conveyor grace/carry); those defs are
+ * plate definitions when matrices.ts loads (Ream / Type Case sheets, Conveyor grace/carry); those defs are
  * patched too. Every call restores the defaults first, so a worker can switch override sets.
  */
 import { BALANCE } from '../core/config/balance';
 import { MX, matrixDef } from '../core/matrices';
-import { applyRule, checkRuleKey, isRuleKey, restoreRules } from './rules';
 
 export type Overrides = Record<string, number>;
 
@@ -47,6 +46,7 @@ function restoreDefaults(): void {
 
 function syncDefs(): void {
   matrixDef('ream').sheets = MX.reamSheets;
+  matrixDef('type_case').sheets = MX.typeCaseSheets;
   matrixDef('conveyor').streakGrace = MX.conveyorGrace;
   matrixDef('conveyor').streakCarry = MX.conveyorCarry;
 }
@@ -55,14 +55,11 @@ export function applyOverrides(o: Overrides | undefined): void {
   const sig = JSON.stringify(o ?? {});
   if (sig === active) return;
   restoreDefaults();
-  restoreRules();
   for (const [k, v] of Object.entries(o ?? {})) {
-    if (isRuleKey(k)) continue;
     const { root, path } = resolve(k);
     setPath(root, path, v, k);
   }
   syncDefs();
-  for (const [k, v] of Object.entries(o ?? {})) if (isRuleKey(k)) applyRule(k, v);
   active = sig;
 }
 
@@ -74,8 +71,7 @@ export function parseOverrides(spec: string): Overrides {
     if (!k || v === undefined) throw new Error(`--set: expected key=value, got ${part}`);
     const n = Number(v);
     if (!Number.isFinite(n)) throw new Error(`--set: ${k} must be numeric`);
-    if (isRuleKey(k.trim())) checkRuleKey(k.trim());
-    else resolve(k.trim());
+    resolve(k.trim());
     out[k.trim()] = n;
   }
   return out;

@@ -20,28 +20,28 @@ export const BALANCE = {
   contractsPerEdition: 3,
   baseSheets: 20,
   /** Quota of job 1 and growth per job (smooth exponential, §6.2). */
-  quotaStart: 400,
-  quotaGrowth: 1.3,
+  quotaStart: 1000,
+  quotaGrowth: 1.38,
   /** Special job factor on top of the curve (before per-modifier factors). */
   specialFactor: 1.0,
   modifierQuota: {
     rush: 0.8,
-    big_format: 1.0,
-    wet_ink: 0.8,
-    jam: 0.85,
+    big_format: 0.85,
+    wet_ink: 0.75,
+    jam: 0.7,
     out_of_ink: 0.85,
-    leftover: 0.9,
-    failure: 0.9,
-    short_tray: 0.9,
+    leftover: 0.85,
+    failure: 0.85,
+    short_tray: 0.85,
     rows_only: 0.75,
   } as Record<ModifierId, number>,
   doubleModifierFromEdition: 7,
 
   // --- Rewards (§6.3, §9) ---
   /** Share of base sheets used at most → 4 offer cards. */
-  earlyShare4Cards: 0.6,
+  earlyShare4Cards: 0.5,
   /** Share of base sheets used at most → rare-or-better guaranteed. */
-  earlyShareRare: 0.4,
+  earlyShareRare: 0.3,
   skipSheets: 3,
   sellSheets: { common: 1, rare: 1, legendary: 2 } as ByRarity,
   freeRerollsPerRun: 1,
@@ -54,7 +54,7 @@ export const BALANCE = {
 
   // --- Offer rarity weights (§8.1) ---
   rarityWeights: { common: 64, rare: 30, legendary: 6 } as ByRarity,
-  rarityWeightsLate: { common: 58, rare: 32, legendary: 10 } as ByRarity,
+  rarityWeightsLate: { common: 50, rare: 35, legendary: 15 } as ByRarity,
   rarityLateFromEdition: 4,
   /** Failure modifier: disabled plate weights by rarity. */
   failureWeights: { common: 1, rare: 2, legendary: 3 } as ByRarity,
@@ -70,8 +70,8 @@ export const BALANCE = {
   // --- Modifiers (§7) ---
   rushSheets: 14,
   /** Base sheets of a Large Format job (big pieces fill the forme faster). */
-  bigFormatSheets: 20,
-  jamCount: [2, 2, 3, 3, 3, 4, 4, 4] as number[],
+  bigFormatSheets: 12,
+  jamCount: [5, 5, 5, 5, 5, 5, 5, 5] as number[],
   leftoverCount: [8, 8, 10, 10, 10, 12, 12, 12] as number[],
 };
 

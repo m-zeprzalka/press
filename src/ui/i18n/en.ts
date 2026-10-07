@@ -231,6 +231,7 @@ export const EN: Record<string, string> = {
   'results.achievement': 'Achievement: {name}',
   'results.new_run': 'New run',
   'results.menu': 'Menu',
+  'results.noads_card': 'Enjoying PRESS? Remove ads with one purchase.',
   'results.share': 'Share',
   'results.daily_again': 'Try again',
   'victory.title': 'Full print run!',

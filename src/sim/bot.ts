@@ -104,7 +104,8 @@ export const ARCHETYPES: Record<string, readonly MatrixId[]> = {
 /** Non-scoring value (log-gain units) of passive / utility effects. */
 const UTILITY: Partial<Record<MatrixId, number>> = {
   ream: 0.16,
-  type_case: 0.1,
+  // Stash (0.1) + MX.typeCaseSheets (2) sheets per job, valued like Ream's sheets.
+  type_case: 0.2,
   conveyor: 0.1,
   ink_pink: 0.03,
   ink_orange: 0.03,

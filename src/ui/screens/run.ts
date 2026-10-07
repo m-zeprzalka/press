@@ -539,6 +539,8 @@ export interface ResultsView {
   achievements: string[];
   daily: { grid: string } | null;
   canRetryDaily: boolean;
+  /** Soft "No ads" card after the 3rd interstitial (once per session). */
+  noAdsCard: boolean;
 }
 
 function statTiles(totals: RunTotals): HTMLElement {
@@ -557,7 +559,7 @@ function statTiles(totals: RunTotals): HTMLElement {
 
 export function buildResults(
   v: ResultsView,
-  act: { newRun(): void; menu(): void; share(): void; retryDaily(): void },
+  act: { newRun(): void; menu(): void; share(): void; retryDaily(): void; noAds?(): void },
 ): HTMLElement {
   const col = h(
     'div',
@@ -604,6 +606,15 @@ export function buildResults(
   );
   if (v.canRetryDaily)
     col.append(button(t('results.daily_again'), act.retryDaily, { icon: uiIcon('restart'), wide: true }));
+  if (v.noAdsCard && act.noAds)
+    col.append(
+      h(
+        'div',
+        { class: 'card', style: 'text-align:center' },
+        h('p', { style: 'margin:0 0 8px' }, t('results.noads_card')),
+        button(t('title.no_ads'), act.noAds, { small: true, icon: uiIcon('crown') }),
+      ),
+    );
   col.append(
     h(
       'div',

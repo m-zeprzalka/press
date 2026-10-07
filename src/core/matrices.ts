@@ -159,36 +159,37 @@ export const MX = {
   inkPrints: 20,
   proofMult: 3,
   guillotinePrints: 50,
-  rollerMult: 6,
+  rollerMult: 2,
   marginsPrints: 120,
   petitMult: 5,
   petitMaxSize: 3,
   posterPrints: 120,
-  posterMinSize: 5,
+  posterMinSize: 4,
   reamSheets: 3,
   numeratorPerStreak: 1,
   scrapPerPlacement: 30,
   scrapMax: 300,
   firstImpressionX: 2,
-  firstImpressionSheets: 8,
+  firstImpressionSheets: 12,
   columnPressX: 2,
   monotypeX: 2,
+  monotypeMaxInks: 2,
   registrationPerInk: 2,
-  journeymanStart: 1,
+  journeymanStart: 0,
   journeymanStep: 1,
-  archiveStep: 1,
-  crossmarkMult: 3,
-  cleanSheetX: 4,
-  cleanSheetMinLines: 2,
+  archiveStep: 2,
+  crossmarkMult: 5,
+  typeCaseSheets: 2,
+  cleanSheetX: 3,
+  cleanSheetMaxCells: 8,
   stencilPerEmpty: 0.5,
   momentumPerStreak: 0.1,
   conveyorGrace: 1,
   conveyorCarry: 0.5,
-  inkWellStep: 2,
+  inkWellStep: 4,
   gutenbergStart: 1.5,
   gutenbergStep: 0.25,
-  hydraulicX: 3,
-  hydraulicMinLines: 3,
+  hydraulicX: 1.5,
   goldenChance: 0.25,
   goldenX: 1.1,
   splitFountainX: 1.5,
@@ -236,9 +237,7 @@ const DEFS: MatrixDef[] = [
     rarity: 'common',
     tags: ['multi'],
     starter: true,
-    print: (api, p) => {
-      if (p.lineCount >= 2) api.mult(MX.rollerMult);
-    },
+    print: (api, p) => api.mult(MX.rollerMult * p.lineCount),
     params: () => ({ n: MX.rollerMult }),
   },
   {
@@ -338,9 +337,11 @@ const DEFS: MatrixDef[] = [
     tags: ['color', 'mono'],
     starter: true,
     print: (api, p) => {
-      if (p.monoLines > 0) api.xmult(ipow(MX.monotypeX, p.monoLines));
+      // Lines printed in 1..monotypeMaxInks inks (a line of blind emboss / lead only has none).
+      const k = p.lineInkCounts.filter((n) => n >= 1 && n <= MX.monotypeMaxInks).length;
+      if (k > 0) api.xmult(ipow(MX.monotypeX, k));
     },
-    params: () => ({ x: MX.monotypeX }),
+    params: () => ({ x: MX.monotypeX, n: MX.monotypeMaxInks }),
   },
   {
     id: 'registration',
@@ -384,8 +385,18 @@ const DEFS: MatrixDef[] = [
     rarity: 'rare',
     tags: ['multi'],
     starter: false,
-    print: (api, p) => {
-      if (p.intersections > 0) api.mult(MX.crossmarkMult * p.intersections);
+    // `last`: directions of the previous print in this job (bit 1 = rows, bit 2 = columns).
+    initState: () => ({ last: 0 }),
+    print: (api, p, st) => {
+      const last = st.last ?? 0;
+      // A row crosses any earlier column and vice versa.
+      if ((p.rowCount > 0 && last & 2) || (p.colCount > 0 && last & 1)) api.mult(MX.crossmarkMult);
+    },
+    afterPrint: (p, st) => {
+      st.last = (p.rowCount > 0 ? 1 : 0) | (p.colCount > 0 ? 2 : 0);
+    },
+    onContractStart: (st) => {
+      st.last = 0;
     },
     params: () => ({ n: MX.crossmarkMult }),
   },
@@ -395,7 +406,8 @@ const DEFS: MatrixDef[] = [
     tags: ['utility'],
     starter: false,
     reserve: 1,
-    params: () => ({}),
+    sheets: MX.typeCaseSheets,
+    params: () => ({ n: MX.typeCaseSheets }),
   },
   {
     id: 'clean_sheet',
@@ -403,9 +415,9 @@ const DEFS: MatrixDef[] = [
     tags: ['multi'],
     starter: false,
     print: (api, p) => {
-      if (p.boardCleanAfter && p.lineCount >= MX.cleanSheetMinLines) api.xmult(MX.cleanSheetX);
+      if (p.cellsAfter <= MX.cleanSheetMaxCells) api.xmult(MX.cleanSheetX);
     },
-    params: () => ({ x: MX.cleanSheetX, n: MX.cleanSheetMinLines }),
+    params: () => ({ x: MX.cleanSheetX, n: MX.cleanSheetMaxCells }),
   },
   {
     id: 'stencil',
@@ -468,9 +480,9 @@ const DEFS: MatrixDef[] = [
     tags: ['multi'],
     starter: true,
     print: (api, p) => {
-      if (p.lineCount >= MX.hydraulicMinLines) api.xmult(MX.hydraulicX);
+      api.xmult(ipow(MX.hydraulicX, p.lineCount));
     },
-    params: () => ({ x: MX.hydraulicX, lines: MX.hydraulicMinLines }),
+    params: () => ({ x: MX.hydraulicX }),
   },
   {
     id: 'golden_type',

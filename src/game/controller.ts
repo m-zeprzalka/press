@@ -284,8 +284,26 @@ export class GameController {
 
   /** UMP consent form at a natural break on the title screen (never in play; GDD §11.2). */
   private async maybeShowConsent(): Promise<void> {
-    if (this.s.lifecycle.isFirstSession || !this.s.ads.needsConsentForm()) return;
-    await this.s.ads.showConsentForm();
+    if (this.s.lifecycle.isFirstSession) return;
+    // Consent info is requested at boot and may land after the title renders: look again
+    // a couple of times, but only while the title is still the screen in front.
+    for (const delay of [0, 1500, 4000]) {
+      if (delay) await new Promise((r) => setTimeout(r, delay));
+      if (this.ui.top !== 'title') return;
+      if (this.s.ads.needsConsentForm()) {
+        await this.s.ads.showConsentForm();
+        return;
+      }
+    }
+  }
+
+  /** "No ads" nudges (reprint link, soft card on Results) appear at most once per session. */
+  private upsellShown = false;
+
+  private takeUpsell(eligible: boolean): boolean {
+    if (!eligible || this.upsellShown || this.s.iap.entitled || !this.s.iap.available) return false;
+    this.upsellShown = true;
+    return true;
   }
 
   showSettings(fromGame = false): void {
@@ -984,7 +1002,7 @@ export class GameController {
           gap: Math.max(0, c.spec.quota - c.progress),
           mode,
           adAvailable,
-          showNoAdsHint: mode === 'ad' && this.s.iap.available,
+          showNoAdsHint: this.takeUpsell(mode === 'ad'),
         },
         { accept, decline: () => void decline(), noAds: () => void this.showNoAds() },
       ),
@@ -1088,11 +1106,13 @@ export class GameController {
           achievements,
           daily,
           canRetryDaily,
+          noAdsCard: this.takeUpsell(this.s.ads.interstitialsShown >= 3),
         },
         {
           newRun: () => void leave('new_run_button', () => void this.newRunAfterResults()),
           menu: () => void leave('menu_button', () => this.showTitle()),
           share: () => void this.shareResult(),
+          noAds: () => void this.showNoAds(),
           retryDaily: () => void leave('new_run_button', () => void this.startRun('daily')),
         },
       ),

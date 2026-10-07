@@ -43,6 +43,8 @@ export interface SaveService {
 export interface AdsService {
   start(opts: { sessionIndex: number; noAds: boolean }): Promise<void>;
   needsConsentForm(): boolean;
+  /** Lifetime interstitials shown (drives the soft "No ads" card, GDD §11.5). */
+  readonly interstitialsShown: number;
   showConsentForm(): Promise<void>;
   privacyOptionsRequired(): boolean;
   showPrivacyOptions(): Promise<void>;

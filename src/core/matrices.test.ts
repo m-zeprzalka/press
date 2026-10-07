@@ -180,36 +180,37 @@ describe('MX numbers (GDD §8.2)', () => {
       inkPrints: 20,
       proofMult: 3,
       guillotinePrints: 50,
-      rollerMult: 6,
+      rollerMult: 2,
       marginsPrints: 120,
       petitMult: 5,
       petitMaxSize: 3,
       posterPrints: 120,
-      posterMinSize: 5,
+      posterMinSize: 4,
       reamSheets: 3,
       numeratorPerStreak: 1,
       scrapPerPlacement: 30,
       scrapMax: 300,
       firstImpressionX: 2,
-      firstImpressionSheets: 8,
+      firstImpressionSheets: 12,
       columnPressX: 2,
       monotypeX: 2,
+      monotypeMaxInks: 2,
       registrationPerInk: 2,
-      journeymanStart: 1,
+      journeymanStart: 0,
       journeymanStep: 1,
-      archiveStep: 1,
-      crossmarkMult: 3,
-      cleanSheetX: 4,
-      cleanSheetMinLines: 2,
+      archiveStep: 2,
+      crossmarkMult: 5,
+      typeCaseSheets: 2,
+      cleanSheetX: 3,
+      cleanSheetMaxCells: 8,
       stencilPerEmpty: 0.5,
       momentumPerStreak: 0.1,
       conveyorGrace: 1,
       conveyorCarry: 0.5,
-      inkWellStep: 2,
+      inkWellStep: 4,
       gutenbergStart: 1.5,
       gutenbergStep: 0.25,
-      hydraulicX: 3,
-      hydraulicMinLines: 3,
+      hydraulicX: 1.5,
       goldenChance: 0.25,
       goldenX: 1.1,
       splitFountainX: 1.5,
@@ -228,28 +229,28 @@ describe('params()', () => {
     ink_blue: { n: 20 },
     proof: { n: 3 },
     guillotine: { n: 50 },
-    roller: { n: 6 },
+    roller: { n: 2 },
     margins: { n: 120 },
     petit: { n: 5, size: 3 },
-    poster: { n: 120, size: 5 },
+    poster: { n: 120, size: 4 },
     ream: { n: 3 },
     numerator: { n: 1 },
     scrap: { n: 30, max: 300, stored: 0 },
-    first_impression: { x: 2, n: 8 },
+    first_impression: { x: 2, n: 12 },
     column_press: { x: 2 },
-    monotype: { x: 2 },
+    monotype: { x: 2, n: 2 },
     registration: { n: 2 },
-    journeyman: { n: 1, step: 1 },
-    archive: { n: 0, step: 1 },
-    crossmark: { n: 3 },
-    type_case: {},
-    clean_sheet: { x: 4, n: 2 },
+    journeyman: { n: 0, step: 1 },
+    archive: { n: 0, step: 2 },
+    crossmark: { n: 5 },
+    type_case: { n: 2 },
+    clean_sheet: { x: 3, n: 8 },
     stencil: { x: 0.5 },
     momentum: { x: 0.1 },
     conveyor: { n: 1, pct: 50 },
-    ink_well: { n: 0, step: 2 },
+    ink_well: { n: 0, step: 4 },
     gutenberg: { x: 1.5, step: 0.25 },
-    hydraulic: { x: 3, lines: 3 },
+    hydraulic: { x: 1.5 },
     golden_type: { n: 4, x: 1.1 },
     mirror: {},
     split_fountain: { x: 1.5, n: 3 },
@@ -276,8 +277,8 @@ describe('params()', () => {
   it('stateful plates show their current counter', () => {
     expect(matrixDef('scrap').params({ stored: 90 })).toEqual({ n: 30, max: 300, stored: 90 });
     expect(matrixDef('journeyman').params({ mult: 4 })).toEqual({ n: 4, step: 1 });
-    expect(matrixDef('archive').params({ bonus: 12 })).toEqual({ n: 12, step: 1 });
-    expect(matrixDef('ink_well').params({ mult: 6 })).toEqual({ n: 6, step: 2 });
+    expect(matrixDef('archive').params({ bonus: 12 })).toEqual({ n: 12, step: 2 });
+    expect(matrixDef('ink_well').params({ mult: 6 })).toEqual({ n: 6, step: 4 });
     expect(matrixDef('gutenberg').params({ x: 2.25 })).toEqual({ x: 2.25, step: 0.25 });
   });
 });
@@ -300,11 +301,12 @@ describe('createInstance / isMatrixId', () => {
   it('initialises counters from initState', () => {
     const states = Object.fromEntries(MATRIX_IDS.map((id) => [id, createInstance(id, 7).state]));
     expect(states.scrap).toEqual({ stored: 0 });
-    expect(states.journeyman).toEqual({ mult: 1 });
+    expect(states.journeyman).toEqual({ mult: MX.journeymanStart });
     expect(states.archive).toEqual({ bonus: 0 });
     expect(states.ink_well).toEqual({ mult: 0 });
     expect(states.gutenberg).toEqual({ x: 1.5 });
-    const stateful = ['scrap', 'journeyman', 'archive', 'ink_well', 'gutenberg'];
+    expect(states.crossmark).toEqual({ last: 0 });
+    const stateful = ['scrap', 'journeyman', 'archive', 'ink_well', 'gutenberg', 'crossmark'];
     for (const id of MATRIX_IDS) {
       if (!stateful.includes(id)) expect(states[id], id).toEqual({});
       expect(matrixDef(id).initState !== undefined, id).toBe(stateful.includes(id));
@@ -314,10 +316,10 @@ describe('createInstance / isMatrixId', () => {
   it('keeps id and uid; every instance gets its own state object (sold plates come back reset)', () => {
     const a = createInstance('journeyman', 3);
     const b = createInstance('journeyman', 4);
-    expect(a).toEqual({ id: 'journeyman', uid: 3, state: { mult: 1 } });
+    expect(a).toEqual({ id: 'journeyman', uid: 3, state: { mult: MX.journeymanStart } });
     expect(a.state).not.toBe(b.state);
     a.state.mult = 9;
-    expect(createInstance('journeyman', 5).state).toEqual({ mult: 1 });
+    expect(createInstance('journeyman', 5).state).toEqual({ mult: MX.journeymanStart });
     const m = createInstance('mirror', 1);
     const n = createInstance('mirror', 2);
     expect(m.state).not.toBe(n.state);
@@ -354,14 +356,15 @@ describe('passive effects', () => {
       if (!inkPlates.includes(id)) expect(matrixDef(id).inkAffinity, id).toBeUndefined();
   });
 
-  it('ream +3 sheets, type case reserve 1, conveyor +1 grace / 50% carry — and nobody else', () => {
+  it('ream +3 sheets, type case reserve 1 and +2 sheets, conveyor +1 grace / 50% carry — and nobody else', () => {
     expect(matrixDef('ream').sheets).toBe(3);
     expect(matrixDef('type_case').reserve).toBe(1);
+    expect(matrixDef('type_case').sheets).toBe(MX.typeCaseSheets);
     expect(matrixDef('conveyor').streakGrace).toBe(1);
     expect(matrixDef('conveyor').streakCarry).toBe(0.5);
     for (const id of MATRIX_IDS) {
       const d = matrixDef(id);
-      if (id !== 'ream') expect(d.sheets, id).toBeUndefined();
+      if (id !== 'ream' && id !== 'type_case') expect(d.sheets, id).toBeUndefined();
       if (id !== 'type_case') expect(d.reserve, id).toBeUndefined();
       if (id !== 'conveyor') {
         expect(d.streakGrace, id).toBeUndefined();
@@ -413,27 +416,42 @@ describe('lifecycle hooks (growth)', () => {
     expect(empty.stored).toBe(30);
   });
 
-  it('archive grows by +1 per printed line', () => {
+  it('archive grows by +archiveStep (2) per printed line', () => {
     const d = matrixDef('archive');
+    const step = MX.archiveStep;
     const st = createInstance('archive', 1).state;
     d.afterPrint?.(printCtx({ lineCount: 3 }), st);
-    expect(st.bonus).toBe(3);
+    expect(st.bonus).toBe(3 * step);
     d.afterPrint?.(printCtx({ lineCount: 1 }), st);
-    expect(st.bonus).toBe(4);
+    expect(st.bonus).toBe(4 * step);
     const empty: MatrixState = {};
     d.afterPrint?.(printCtx({ lineCount: 2 }), empty);
-    expect(empty.bonus).toBe(2);
+    expect(empty.bonus).toBe(2 * step);
   });
 
-  it('ink well grows by +2 per monochrome line', () => {
+  it('ink well grows by +inkWellStep (4) per monochrome line', () => {
     const d = matrixDef('ink_well');
+    const step = MX.inkWellStep;
     const st = createInstance('ink_well', 1).state;
     d.afterPrint?.(printCtx({ lineCount: 3, monoLines: 0 }), st);
     expect(st.mult).toBe(0);
     d.afterPrint?.(printCtx({ lineCount: 3, monoLines: 2 }), st);
-    expect(st.mult).toBe(4);
+    expect(st.mult).toBe(2 * step);
     d.afterPrint?.(printCtx({ monoLines: 1 }), st);
-    expect(st.mult).toBe(6);
+    expect(st.mult).toBe(3 * step);
+  });
+
+  it('crossmark remembers the directions of the previous print and forgets them at job start', () => {
+    const d = matrixDef('crossmark');
+    const st = createInstance('crossmark', 1).state;
+    d.afterPrint?.(printCtx({ rowCount: 1, colCount: 0 }), st);
+    expect(st.last).toBe(1);
+    d.afterPrint?.(printCtx({ rowCount: 0, colCount: 2 }), st);
+    expect(st.last).toBe(2);
+    d.afterPrint?.(printCtx({ rowCount: 1, colCount: 1 }), st);
+    expect(st.last).toBe(3);
+    d.onContractStart?.(st);
+    expect(st.last).toBe(0);
   });
 
   it('journeyman +1 and gutenberg +0.25 after each won contract', () => {
@@ -445,7 +463,7 @@ describe('lifecycle hooks (growth)', () => {
     for (let k = 0; k < 10; k++) {
       j.afterContract?.(js);
       g.afterContract?.(gs);
-      expect(js.mult).toBe(2 + k);
+      expect(js.mult).toBe(MX.journeymanStart + (k + 1) * MX.journeymanStep);
       expect(gs.x).toBe(gExpected[k]);
     }
     // Long endless runs stay on exact quarter steps.
@@ -455,16 +473,23 @@ describe('lifecycle hooks (growth)', () => {
     const ge: MatrixState = {};
     j.afterContract?.(je);
     g.afterContract?.(ge);
-    expect(je.mult).toBe(2);
+    expect(je.mult).toBe(MX.journeymanStart + MX.journeymanStep);
     expect(ge.x).toBe(1.75);
   });
 
-  it('only scrap, archive, ink well, journeyman and gutenberg have lifecycle hooks', () => {
+  it('only scrap, archive, ink well, journeyman, gutenberg and crossmark have lifecycle hooks', () => {
     const withLifecycle = MATRIX_IDS.filter((id) => {
       const d = matrixDef(id);
       return Boolean(d.afterPrint || d.afterPlace || d.afterContract || d.onContractStart);
     });
-    expect(sorted(withLifecycle)).toEqual(['archive', 'gutenberg', 'ink_well', 'journeyman', 'scrap']);
+    expect(sorted(withLifecycle)).toEqual([
+      'archive',
+      'crossmark',
+      'gutenberg',
+      'ink_well',
+      'journeyman',
+      'scrap',
+    ]);
   });
 });
 

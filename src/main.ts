@@ -90,6 +90,9 @@ async function boot(): Promise<void> {
       privacyOptionsRequired: () => platform.ads.privacyOptionsRequired(),
       showPrivacyOptions: () => platform.ads.showPrivacyOptions(),
       available: (kind) => platform.ads.available(kind),
+      get interstitialsShown() {
+        return platform.ads.state.interstitialsShown;
+      },
       showRewarded: (kind, hooks) => platform.ads.showRewarded(kind, hooks),
       maybeShowInterstitial: (ctx) =>
         platform.ads.maybeShowInterstitial({

@@ -201,6 +201,9 @@ const FOUR_LINES = [
 /** Row 4 with exactly two inks / exactly three inks. */
 const ROW_2_INKS = [E, E, E, E, 'ppppbbbb', E, E, E];
 const ROW_3_INKS = [E, E, E, E, 'pppobbbb', E, E, E];
+/** Row 0 printed; exactly 8 / 9 cells stay on the forme (Clean Sheet threshold). */
+const LEAVES_8 = ['ppoytbpp', 'pppp....', 'pppp....', E, E, E, E, E];
+const LEAVES_9 = ['ppoytbpp', 'pppp....', 'ppppp...', E, E, E, E, E];
 
 // ---------------------------------------------------------------------------
 // Fixtures (hand-computed)
@@ -263,8 +266,9 @@ const FIXTURES: Fixture[] = [
   { name: 'proof +3', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof'], env: { streak: 1 }, prints: 80, mult: 4, total: 320 },
   // 160 + 2·50.
   { name: 'guillotine +50 per line', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['guillotine'], env: { streak: 2 }, prints: 260, mult: 3, total: 780 },
-  { name: 'roller: 1 line → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['roller'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
-  { name: 'roller: 2 lines → +6', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['roller'], env: { streak: 2 }, prints: 160, mult: 9, total: 1440 },
+  // +2 per printed line.
+  { name: 'roller: 1 line → +2', board: ROW0_MIXED, rows: [0], cols: [], plates: ['roller'], env: { streak: 1 }, prints: 80, mult: 3, total: 240 },
+  { name: 'roller: 2 lines → +4', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['roller'], env: { streak: 2 }, prints: 160, mult: 7, total: 1120 },
   // only row 0 is an edge: 160 + 120.
   { name: 'margins: one edge row of two', board: ROWS_0_3, rows: [0, 3], cols: [], plates: ['margins'], env: { streak: 2 }, prints: 280, mult: 3, total: 840 },
   // row 0 and col 0 are edges: 320 + 240.
@@ -272,7 +276,8 @@ const FIXTURES: Fixture[] = [
   { name: 'petit: piece of 3 → +5', board: ROW0_MIXED, rows: [0], cols: [], plates: ['petit'], env: { streak: 1, pieceSize: 3 }, prints: 80, mult: 6, total: 480 },
   { name: 'petit: piece of 4 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['petit'], env: { streak: 1, pieceSize: 4 }, prints: 80, mult: 1, total: 80 },
   { name: 'poster: piece of 5 → +120 prints', board: ROW0_MIXED, rows: [0], cols: [], plates: ['poster'], env: { streak: 1, pieceSize: 5 }, prints: 200, mult: 1, total: 200 },
-  { name: 'poster: piece of 4 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['poster'], env: { streak: 1, pieceSize: 4 }, prints: 80, mult: 1, total: 80 },
+  { name: 'poster: piece of 4 → +120 prints', board: ROW0_MIXED, rows: [0], cols: [], plates: ['poster'], env: { streak: 1, pieceSize: 4 }, prints: 200, mult: 1, total: 200 },
+  { name: 'poster: piece of 3 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['poster'], env: { streak: 1, pieceSize: 3 }, prints: 80, mult: 1, total: 80 },
   // M = 1 + 4 + 5.
   { name: 'numerator: SERIA 5 → +5', board: ROW0_MIXED, rows: [0], cols: [], plates: ['numerator'], env: { streak: 5 }, prints: 80, mult: 10, total: 800 },
   { name: 'numerator: SERIA 0 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['numerator'], env: { streak: 0 }, prints: 80, mult: 1, total: 80 },
@@ -280,8 +285,8 @@ const FIXTURES: Fixture[] = [
   { name: 'scrap full bank 300 + proof', board: ROW0_MIXED, rows: [0], cols: [], plates: [{ id: 'scrap', state: { stored: 300 } }, 'proof'], env: { streak: 1 }, prints: 380, mult: 4, total: 1520 },
   { name: 'scrap empty bank', board: ROW0_MIXED, rows: [0], cols: [], plates: ['scrap'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
   // (1 + 3) × 2.
-  { name: 'first_impression at sheet 8', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'first_impression'], env: { streak: 1, sheetsUsed: 8 }, prints: 80, mult: 8, total: 640 },
-  { name: 'first_impression at sheet 9 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'first_impression'], env: { streak: 1, sheetsUsed: 9 }, prints: 80, mult: 4, total: 320 },
+  { name: 'first_impression at sheet 12', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'first_impression'], env: { streak: 1, sheetsUsed: 12 }, prints: 80, mult: 8, total: 640 },
+  { name: 'first_impression at sheet 13 → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'first_impression'], env: { streak: 1, sheetsUsed: 13 }, prints: 80, mult: 4, total: 320 },
   // 1 × 2 + 3.
   { name: 'first_impression before proof', board: ROW0_MIXED, rows: [0], cols: [], plates: ['first_impression', 'proof'], env: { streak: 1, sheetsUsed: 1 }, prints: 80, mult: 5, total: 400 },
 
@@ -304,33 +309,42 @@ const FIXTURES: Fixture[] = [
   // M = 3 + 2 + 6 = 11 × 2³.
   { name: 'monotype: 3 mono lines → ×8', board: MONO3, rows: [0, 1, 2], cols: [], plates: ['monotype'], env: { streak: 3 }, prints: 240, mult: 88, total: 21120 },
   { name: 'monotype: no mono line → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['monotype'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
+  // Lines in at most 2 inks count as well.
+  { name: 'monotype: a 2-ink line → ×2', board: ROW_2_INKS, rows: [4], cols: [], plates: ['monotype'], env: { streak: 1 }, prints: 80, mult: 2, total: 160 },
+  { name: 'monotype: a 3-ink line → nothing', board: ROW_3_INKS, rows: [4], cols: [], plates: ['monotype'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
   // 5 inks → +10.
   { name: 'registration: 5 inks → +10', board: ROW0_MIXED, rows: [0], cols: [], plates: ['registration'], env: { streak: 1 }, prints: 80, mult: 11, total: 880 },
   // 1 ink (blind is no colour) → +2.
   { name: 'registration: 1 ink → +2', board: ROW4_PINK_BLIND, rows: [4], cols: [], plates: ['registration'], env: { streak: 1 }, prints: 70, mult: 3, total: 210 },
-  { name: 'journeyman starts at +1', board: ROW0_MIXED, rows: [0], cols: [], plates: ['journeyman'], env: { streak: 1 }, prints: 80, mult: 2, total: 160 },
+  { name: 'journeyman starts at +0', board: ROW0_MIXED, rows: [0], cols: [], plates: ['journeyman'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
   { name: 'journeyman grown to +4', board: ROW0_MIXED, rows: [0], cols: [], plates: [{ id: 'journeyman', state: { mult: 4 } }], env: { streak: 1 }, prints: 80, mult: 5, total: 400 },
   { name: 'archive starts at 0', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['archive'], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
   // 160 + 2·7.
   { name: 'archive bonus 7 per line', board: TWO_ROWS, rows: [0, 1], cols: [], plates: [{ id: 'archive', state: { bonus: 7 } }], env: { streak: 2 }, prints: 174, mult: 3, total: 522 },
   { name: 'ink_well starts at 0', board: ROW0_MIXED, rows: [0], cols: [], plates: ['ink_well'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
   { name: 'ink_well grown to +6', board: ROW0_MIXED, rows: [0], cols: [], plates: [{ id: 'ink_well', state: { mult: 6 } }], env: { streak: 1 }, prints: 80, mult: 7, total: 560 },
-  // M = 3 + 3·1.
-  { name: 'crossmark: 1 intersection', board: CROSS_MIXED, rows: [6], cols: [3], plates: ['crossmark'], env: { streak: 2 }, prints: 160, mult: 6, total: 960 },
-  // M = 7 + 3·4.
-  { name: 'crossmark: 4 intersections', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['crossmark'], env: { streak: 4 }, prints: 320, mult: 19, total: 6080 },
-  { name: 'crossmark: rows only → nothing', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['crossmark'], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
-  // clean after, 2 lines → 3 × 4.
-  { name: 'clean_sheet: 2 lines, clean forme', board: CROSS_MIXED, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 12, total: 1920 },
-  { name: 'clean_sheet: jams are ignored', board: CROSS_MIXED_JAM, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 12, total: 1920 },
-  { name: 'clean_sheet: leftover lead → nothing', board: CROSS_MIXED_LEAD, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
-  { name: 'clean_sheet: 1 line clears the forme → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['clean_sheet'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
-  { name: 'clean_sheet: 4 lines, clean', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['clean_sheet'], env: { streak: 4 }, prints: 320, mult: 28, total: 8960 },
+  // `last` = directions of the previous print (1 rows, 2 columns, 3 both); a fresh job has 0.
+  { name: 'crossmark: first print of a job → nothing', board: CROSS_MIXED, rows: [6], cols: [3], plates: ['crossmark'], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
+  // M = 3 + 5: the row crosses the previous column.
+  { name: 'crossmark: row + column after a column print → +5', board: CROSS_MIXED, rows: [6], cols: [3], plates: [{ id: 'crossmark', state: { last: 2 } }], env: { streak: 2 }, prints: 160, mult: 8, total: 1280 },
+  // M = 7 + 5 (once per print, however many lines cross).
+  { name: 'crossmark: 4 lines after a row print → +5', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: [{ id: 'crossmark', state: { last: 1 } }], env: { streak: 4 }, prints: 320, mult: 12, total: 3840 },
+  { name: 'crossmark: rows after a column print → +5', board: TWO_ROWS, rows: [0, 1], cols: [], plates: [{ id: 'crossmark', state: { last: 2 } }], env: { streak: 2 }, prints: 160, mult: 8, total: 1280 },
+  { name: 'crossmark: rows after a row print → nothing', board: TWO_ROWS, rows: [0, 1], cols: [], plates: [{ id: 'crossmark', state: { last: 1 } }], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
+  // ×3 when at most 8 cells (jams excluded) stay on the forme after the print.
+  { name: 'clean_sheet: 2 lines, clean forme', board: CROSS_MIXED, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 9, total: 1440 },
+  { name: 'clean_sheet: jams are ignored', board: CROSS_MIXED_JAM, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 9, total: 1440 },
+  { name: 'clean_sheet: one lead cell left still counts', board: CROSS_MIXED_LEAD, rows: [6], cols: [3], plates: ['clean_sheet'], env: { streak: 2 }, prints: 160, mult: 9, total: 1440 },
+  { name: 'clean_sheet: a single line counts too', board: ROW0_MIXED, rows: [0], cols: [], plates: ['clean_sheet'], env: { streak: 1 }, prints: 80, mult: 3, total: 240 },
+  { name: 'clean_sheet: 8 cells left → ×3', board: LEAVES_8, rows: [0], cols: [], plates: ['clean_sheet'], env: { streak: 1 }, prints: 80, mult: 3, total: 240 },
+  { name: 'clean_sheet: 9 cells left → nothing', board: LEAVES_9, rows: [0], cols: [], plates: ['clean_sheet'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
+  { name: 'clean_sheet: 4 lines, clean', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['clean_sheet'], env: { streak: 4 }, prints: 320, mult: 21, total: 6720 },
   // alone: 4 empty slots → ×3.
   { name: 'stencil alone → ×3', board: ROW0_MIXED, rows: [0], cols: [], plates: ['stencil'], env: { streak: 1 }, prints: 80, mult: 3, total: 240 },
   // 3 empty → ×2.5: (1 + 3) × 2.5.
   { name: 'proof + stencil → ×2.5', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'stencil'], env: { streak: 1 }, prints: 80, mult: 10, total: 800 },
-  { name: 'stencil in a full rack → ×1', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'roller', 'petit', 'poster', 'stencil'], env: { streak: 1, pieceSize: 4 }, prints: 80, mult: 4, total: 320 },
+  // (1 + 3 proof + 2 roller) × 1; poster +120 (piece of 4); petit idle.
+  { name: 'stencil in a full rack → ×1', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'roller', 'petit', 'poster', 'stencil'], env: { streak: 1, pieceSize: 4 }, prints: 200, mult: 6, total: 1200 },
   // A disabled plate is not an empty slot (§7): still ×2.5.
   { name: 'stencil: disabled plate still occupies a slot', board: ROW0_MIXED, rows: [0], cols: [], plates: [{ id: 'proof', enabled: false }, 'stencil'], env: { streak: 1 }, prints: 80, mult: 2.5, total: 200 },
   // (1 + 4) × 1.5.
@@ -344,12 +358,16 @@ const FIXTURES: Fixture[] = [
   // 1 × 1.5 + 3 = 4.5.
   { name: 'rack order: gutenberg → proof', board: ROW0_MIXED, rows: [0], cols: [], plates: ['gutenberg', 'proof'], env: { streak: 1 }, prints: 80, mult: 4.5, total: 360 },
   { name: 'gutenberg grown to ×2.25', board: TWO_ROWS, rows: [0, 1], cols: [], plates: [{ id: 'gutenberg', state: { x: 2.25 } }], env: { streak: 2 }, prints: 160, mult: 6.75, total: 1080 },
-  { name: 'hydraulic: 3 lines → ×3', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['hydraulic'], env: { streak: 3 }, prints: 240, mult: 15, total: 3600 },
-  { name: 'hydraulic: 2 lines → nothing', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['hydraulic'], env: { streak: 2 }, prints: 160, mult: 3, total: 480 },
-  { name: 'hydraulic: 4 lines → ×3', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['hydraulic'], env: { streak: 4 }, prints: 320, mult: 21, total: 6720 },
-  // (5 + 6) × 3 vs 5 × 3 + 6.
-  { name: 'rack order: roller → hydraulic', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['roller', 'hydraulic'], env: { streak: 3 }, prints: 240, mult: 33, total: 7920 },
-  { name: 'rack order: hydraulic → roller', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['hydraulic', 'roller'], env: { streak: 3 }, prints: 240, mult: 21, total: 5040 },
+  // ×1.5 per printed line.
+  { name: 'hydraulic: 1 line → ×1.5', board: ROW0_MIXED, rows: [0], cols: [], plates: ['hydraulic'], env: { streak: 1 }, prints: 80, mult: 1.5, total: 120 },
+  { name: 'hydraulic: 2 lines → ×2.25', board: TWO_ROWS, rows: [0, 1], cols: [], plates: ['hydraulic'], env: { streak: 2 }, prints: 160, mult: 6.75, total: 1080 },
+  // 5 × 1.5³ = 16.875.
+  { name: 'hydraulic: 3 lines → ×3.375', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['hydraulic'], env: { streak: 3 }, prints: 240, mult: 16.875, total: 4050 },
+  // 7 × 1.5⁴ = 35.4375.
+  { name: 'hydraulic: 4 lines → ×5.0625', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['hydraulic'], env: { streak: 4 }, prints: 320, mult: 35.4375, total: 11340 },
+  // (5 + 6) × 3.375 vs 5 × 3.375 + 6.
+  { name: 'rack order: roller → hydraulic', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['roller', 'hydraulic'], env: { streak: 3 }, prints: 240, mult: 37.125, total: 8910 },
+  { name: 'rack order: hydraulic → roller', board: THREE_ROWS, rows: [5, 6, 7], cols: [], plates: ['hydraulic', 'roller'], env: { streak: 3 }, prints: 240, mult: 22.875, total: 5490 },
   // row 6: 5 inks, col 3: 4 inks → ×1.5² = 2.25; 3 × 2.25.
   { name: 'split_fountain: 2 rainbow lines', board: CROSS_MIXED, rows: [6], cols: [3], plates: ['split_fountain'], env: { streak: 2 }, prints: 160, mult: 6.75, total: 1080 },
   // 7 × 1.5⁴ = 35.4375.
@@ -373,20 +391,21 @@ const FIXTURES: Fixture[] = [
   // (1 + 3) × 2 × 2.
   { name: 'mirror copies gutenberg ×2', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'mirror', { id: 'gutenberg', state: { x: 2 } }], env: { streak: 1 }, prints: 80, mult: 16, total: 1280 },
   { name: 'mirror copies first_impression (condition met)', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'mirror', 'first_impression'], env: { streak: 1, sheetsUsed: 5 }, prints: 80, mult: 16, total: 1280 },
-  { name: 'mirror copies first_impression (condition not met)', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'mirror', 'first_impression'], env: { streak: 1, sheetsUsed: 9 }, prints: 80, mult: 4, total: 320 },
+  { name: 'mirror copies first_impression (condition not met)', board: ROW0_MIXED, rows: [0], cols: [], plates: ['proof', 'mirror', 'first_impression'], env: { streak: 1, sheetsUsed: 13 }, prints: 80, mult: 4, total: 320 },
   // 3 empty slots → ×2.5 twice.
   { name: 'mirror copies stencil', board: ROW0_MIXED, rows: [0], cols: [], plates: ['mirror', 'stencil'], env: { streak: 1 }, prints: 80, mult: 6.25, total: 500 },
   { name: 'mirror next to ream (passive) → nothing', board: ROW0_MIXED, rows: [0], cols: [], plates: ['mirror', 'ream'], env: { streak: 1 }, prints: 80, mult: 1, total: 80 },
 
   // ---- builds / longer racks ----
-  // P = 240 + 10 pinks × 20 = 440; M = 9 + 6 = 15, ×4 = 60, ×1.75 = 105.
+  // P = 240 + 10 pinks × 20 = 440; M = 9 + 6 (roller, 3 lines) = 15, ×4 = 60, ×1.75 = 105.
   { name: 'mono build: ink_pink, roller, monotype, gutenberg', board: MONO_MIX3, rows: [0, 1, 2], cols: [], plates: ['ink_pink', 'roller', 'monotype', { id: 'gutenberg', state: { x: 1.75 } }], env: { streak: 3 }, prints: 440, mult: 105, total: 46200 },
   // Reversed: 9 × 1.75 = 15.75, ×4 = 63, +6 = 69.
   { name: 'mono build reversed', board: MONO_MIX3, rows: [0, 1, 2], cols: [], plates: [{ id: 'gutenberg', state: { x: 1.75 } }, 'monotype', 'roller', 'ink_pink'], env: { streak: 3 }, prints: 440, mult: 69, total: 30360 },
   // M = 1 + 5 = 6, +5 (petit) = 11, +6 (numerator) = 17, ×1.6 = 27.2.
   { name: 'streak build: petit, numerator, momentum', board: ROW0_MIXED, rows: [0], cols: [], plates: ['petit', 'numerator', 'momentum'], env: { streak: 6, pieceSize: 2 }, prints: 80, mult: 27.2, total: 2176 },
-  // Big press on FOUR_LINES, piece 5: P = 320 + 120 = 440; M = 7 + 6 (roller) + 12 (crossmark) = 25, ×3 = 75, ×4 = 300.
-  { name: 'big press: poster, roller, crossmark, hydraulic, clean_sheet', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['poster', 'roller', 'crossmark', 'hydraulic', 'clean_sheet'], env: { streak: 4, pieceSize: 5 }, prints: 440, mult: 300, total: 132000 },
+  // Big press on FOUR_LINES after a row print, piece 5: P = 320 + 120 = 440;
+  // M = 7 + 8 (roller) + 5 (crossmark) = 20, ×1.5⁴ = 101.25, ×3 (clean forme) = 303.75.
+  { name: 'big press: poster, roller, crossmark, hydraulic, clean_sheet', board: FOUR_LINES, rows: [0, 1], cols: [0, 1], plates: ['poster', 'roller', { id: 'crossmark', state: { last: 1 } }, 'hydraulic', 'clean_sheet'], env: { streak: 4, pieceSize: 5 }, prints: 440, mult: 303.75, total: 133650 },
 ];
 
 describe('scorePrint — hand-computed fixtures', () => {
@@ -1035,6 +1054,7 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
   const allInks = new Set<number>();
   let mono = 0;
   let rainbow = 0;
+  let fewInks = 0;
   let P = 0;
   for (const ref of refs) {
     const ids = lineCells(ref.kind, ref.n);
@@ -1076,10 +1096,11 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
     P += lineP;
     if (allInk && inks.size === 1) mono++;
     if (inks.size >= 3) rainbow++;
+    if (inks.size >= 1 && inks.size <= 2) fewInks++;
   }
   const after = cells.slice();
   for (const ref of refs) for (const i of lineCells(ref.kind, ref.n)) if (after[i] !== JAM) after[i] = EMPTY;
-  const clean = after.every((v) => v === EMPTY || v === JAM);
+  const left = after.filter((v) => v !== EMPTY && v !== JAM).length;
   const streak = input.streak;
   let M = L + Math.max(0, streak - 1) + 2 * mono;
   const pw = (b: number, k: number) => {
@@ -1095,13 +1116,13 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
         M += 3;
         break;
       case 'roller':
-        if (L >= 2) M += 6;
+        M += 2 * L;
         break;
       case 'petit':
         if (input.pieceSize <= 3) M += 5;
         break;
       case 'poster':
-        if (input.pieceSize >= 5) P += 120;
+        if (input.pieceSize >= 4) P += 120;
         break;
       case 'numerator':
         if (streak > 0) M += streak;
@@ -1110,22 +1131,24 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
         P += st.stored ?? 0;
         break;
       case 'first_impression':
-        if (input.sheetsUsed <= 8) M *= 2;
+        if (input.sheetsUsed <= 12) M *= 2;
         break;
       case 'monotype':
-        if (mono > 0) M *= pw(2, mono);
+        if (fewInks > 0) M *= pw(2, fewInks);
         break;
       case 'registration':
         M += 2 * allInks.size;
         break;
       case 'journeyman':
-        M += st.mult ?? 1;
+        M += st.mult ?? 0;
         break;
-      case 'crossmark':
-        M += 3 * lines.rows.length * lines.cols.length;
+      case 'crossmark': {
+        const last = st.last ?? 0;
+        if ((lines.rows.length > 0 && last & 2) || (lines.cols.length > 0 && last & 1)) M += 5;
         break;
+      }
       case 'clean_sheet':
-        if (clean && L >= 2) M *= 4;
+        if (left <= 8) M *= 3;
         break;
       case 'stencil':
         M *= 1 + 0.5 * Math.max(0, input.slotCapacity - slots.length);
@@ -1140,7 +1163,7 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
         M *= st.x ?? 1.5;
         break;
       case 'hydraulic':
-        if (L >= 3) M *= 3;
+        M *= pw(1.5, L);
         break;
       case 'golden_type':
         if ((repeats[s] as number) > 0) M *= pw(1.1, repeats[s] as number);
@@ -1190,6 +1213,7 @@ function randomInput(rng: Rng, randomFn: () => number): PrintInput {
     if (id === 'archive') inst.state.bonus = rng.int(60);
     if (id === 'ink_well') inst.state.mult = 2 * rng.int(10);
     if (id === 'gutenberg') inst.state.x = 1.5 + 0.25 * rng.int(11);
+    if (id === 'crossmark') inst.state.last = rng.int(4);
     return { inst, enabled: !rng.chance(0.15) };
   });
   return {

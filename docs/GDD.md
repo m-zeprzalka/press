@@ -134,7 +134,7 @@ Po ułożeniu wszystkie pełne rzędy i kolumny (bez nitów; przy „Prasie pozi
 8 edycji × 3 zlecenia = 24. Zlecenie 3 każdej edycji jest specjalne. **Wygrana zlecenia:** nakład ≥ próg po rozliczeniu druku → natychmiastowy koniec zlecenia. Kolejność po ułożeniu: druk → nakład → arkusze (→ Ostatnia szansa) → zacięcie. **Zwycięstwo** po zleceniu 24; potem koniec albo **tryb bez końca** (nakład dalej rośnie wg krzywej, od edycji 7 każde specjalne ma 2 utrudnienia). **Wynik runu** = suma nakładów.
 
 ### 6.2 Krzywa nakładu
-`Q(j) = zaokr2(400 × 1,30^j)` dla zlecenia j = 0…23 (zaokrąglenie do 2 cyfr znaczących), liczone mnożeniem iteracyjnym (deterministycznie). Zlecenie specjalne: `Q(j) × k_specjalne × Π k_utrudnienia`. Niezmiennik testowany: `Q(j+1)/Q(j) ≥ 1,15` dla kolejnych zwykłych. Tryb bez końca: dalej ×1,30 na zlecenie. Wartości po balansie: §19.1.
+`Q(j) = zaokr2(1000 × 1,38^j)` (przed balansem: 400 × 1,30^j) dla zlecenia j = 0…23 (zaokrąglenie do 2 cyfr znaczących), liczone mnożeniem iteracyjnym (deterministycznie). Zlecenie specjalne: `Q(j) × k_specjalne × Π k_utrudnienia`. Niezmiennik testowany: `Q(j+1)/Q(j) ≥ 1,15` dla kolejnych zwykłych. Tryb bez końca: dalej ×1,38 na zlecenie. Wartości po balansie: §19.1.
 **Dlaczego:** jedna gładka krzywa bez „piły" na granicach edycji (przegląd balansu).
 
 ### 6.3 Premia terminowa
@@ -501,7 +501,23 @@ Brak współdzielonego, zmiennego RNG runu. Bez `Math.pow`/`log10` w `src/core` 
 - **Cele:** zlecenie 1 ≥ 97%; edycja 1 ≥ 85%; edycja 4 ≈ 45–60%; zwycięstwo ≈ 8–15%; dublety > single o ≥ 25% przy tej samej liczbie linii; każde utrudnienie −15…−40% mediany; premia 4 karty ≈ 30–50%, gwarancja rzadkiej ≈ 10–20%; żadna zwykła/rzadka matryca nie daje > 2× mediany efektu (legendarne ≤ 4×), żadna ≤ 0; różnica zwycięstw między „0 przeładowań" a „maks." ≤ +3 pp.
 
 ### 19.1 Wartości po balansie
-*(uzupełniane w etapie 4)*
+
+Strojenie symulatorem (bot beam-search, ~26 tys. runów na wartościach końcowych; raport: [`balance-report.md`](balance-report.md)). Wersja wyjściowa była za łatwa: bot wygrywał 51,7% runów, zlecenia kończyły się po ~7 arkuszach, premie przed terminem przyznawano prawie zawsze, a skalujące matryce (Gutenberg, Czeladnik) dominowały.
+
+| Parametr | Było | Jest | Po co |
+|---|---|---|---|
+| Krzywa nakładu `quotaStart × quotaGrowth^j` | 400 × 1,3^j | **1000 × 1,38^j** | zlecenia zużywają większość arkuszy; edycja 4 ≈ 55%, zwycięstwo ≈ 10% |
+| Premia przed terminem (udział zużytych arkuszy) | 4 karty ≤ 60%, rzadka ≤ 40% | **≤ 50% / ≤ 30%** | premie 44% / 12% zamiast 90% / 75% |
+| Mnożniki nakładu utrudnień | jam 0,85; wet_ink 0,8; big_format 1,0; leftover/failure/short_tray 0,9 | **0,7; 0,75; 0,85; 0,85** | każde utrudnienie −24…−34% (big_format był buffem +24%) |
+| Wielki format | 20 arkuszy | **12 arkuszy** | duże klocki szybciej wypełniają formę |
+| Nity (`jamCount`) | 2–4 wg edycji | **5** | utrudnienie realne od pierwszej edycji |
+| Awaria matrycy | cały run zlecenia | **naprawa po `failureSheets` = 6 arkuszach** | −28% zamiast −52% (−79% w parze) |
+| Wagi rzadkości od edycji 4 | 58/32/10 | **50/35/15** | późne oferty ciekawsze |
+| Matryce | Wałek ×6 przy ≥2 liniach; Prasa hydrauliczna ×3; Czeladnik start +1; Kałamarz +2; Archiwum +1; Krzyżyk +3; Czysty arkusz ×4 przy ≥2 liniach | **Wałek +2 Mult × linie; Prasa ×1,5; Czeladnik start 0; Kałamarz +4; Archiwum +2; Krzyżyk +5; Czysty arkusz ×3 przy ≤ 8 polach po druku; Monotypia liczy linie w ≤ 2 farbach; Kaszta +2 arkusze** | brak martwych i za silnych matryc w eksperymencie wymuszonego wyboru |
+
+Wynik (próba 4000 runów, przeładowanie darmowe, bez dodruku): zlecenie 1 — 98,4%, edycja 1 — 91,8%, edycja 4 — 55,1%, zwycięstwo — 10,1%, dublet vs 2 single — 1,37×, premia 4 karty — 43,7%, gwarancja rzadkiej — 11,7%, maks. reklamowych przeładowań vs 0 — +1,8 pp. **Wszystkie cele z §19 spełnione.**
+
+`RULES_VERSION` zostaje 1: nic nie zostało jeszcze wydane, więc seed wyzwania dnia i zapisy nie wymagają podbicia (podbić przy pierwszej zmianie zasad po premierze).
 
 ---
 
@@ -540,3 +556,4 @@ Brak współdzielonego, zmiennego RNG runu. Bez `Math.pow`/`log10` w `src/core` 
 | D29 | PWA: symulowane reklamy z etykietą „Test ad”, te same reguły | jedna ścieżka kodu i testów e2e; PWA nie jest monetyzowana |
 | D30 | ID reklam wybierane statycznie przez `import.meta.env` | odczyt przez alias zostawiał testowe ID w bundlu produkcyjnym — strażnik CI blokowałby każde wydanie |
 | D31 | Debug APK w CI niezależny od lint/testów; AAB wymaga checks + e2e | instalowalny build i sygnał z Gradle po każdym pushu, brama jakości przed wydaniem |
+| D32 | Balans wg symulatora: krzywa 1000 × 1,38^j, ostrzejsze progi premii, mocniejsze utrudnienia, awaria naprawiana po 6 arkuszach, przestrojone matryce | cele §19 spełnione na ~26 tys. runów bota (§19.1) |

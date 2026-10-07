@@ -464,8 +464,17 @@ describe('applyRunEvents — stats from real runs', () => {
 
   it("a real run earns 'ascetic' by delivering an edition-3+ special job with ≤ 1 plate", () => {
     const meta = newMeta();
-    const { engine, events } = standardRun('meta-ascetic-0');
-    const actions = playRun(meta, engine, events, 5000, { asceticSell: true });
+    // The greedy test player is weak: an easy quota curve keeps it alive into edition 3, so the
+    // test checks the achievement, not the player's strength against the tuned curve.
+    const quotaStart = BALANCE.quotaStart;
+    BALANCE.quotaStart = 100;
+    let actions: Action[];
+    try {
+      const { engine, events } = standardRun('meta-ascetic-0');
+      actions = playRun(meta, engine, events, 5000, { asceticSell: true });
+    } finally {
+      BALANCE.quotaStart = quotaStart;
+    }
     const x = emptyExpect();
     const wonInRun = { n: 0 };
     for (const a of actions) foldAction(x, a, wonInRun);

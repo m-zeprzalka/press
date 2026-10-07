@@ -44,6 +44,8 @@ export const MODIFIER_MIN_EDITION: Record<ModifierId, number> = {
 const INCOMPATIBLE: ReadonlyArray<readonly [ModifierId, ModifierId]> = [
   ['rush', 'short_tray'],
   ['big_format', 'short_tray'],
+  // Both set the job's base sheets.
+  ['rush', 'big_format'],
   ['jam', 'leftover'],
   ['wet_ink', 'rush'],
   ['jam', 'rows_only'],
