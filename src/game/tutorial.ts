@@ -154,6 +154,12 @@ export class Tutorial {
       );
     }
     card.style.top = `${Math.max(8, L?.rack.y ?? 120)}px`;
+    if (L?.landscape) {
+      // Side column layout: keep the card next to the HUD, never over the forme.
+      card.style.left = `${L.rack.x}px`;
+      card.style.width = `${L.rack.w}px`;
+      card.style.transform = 'none';
+    }
     this.host.append(card);
     this.card = card;
     if (autoHideMs) window.setTimeout(() => card.remove(), autoHideMs);
