@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="press_paper">#F2ECDF</color>
+    <color name="press_ink">#231F20</color>
+    <color name="colorPrimary">#231F20</color>
+    <color name="colorPrimaryDark">#F2ECDF</color>
+    <color name="colorAccent">#FF4FA3</color>
+</resources>
