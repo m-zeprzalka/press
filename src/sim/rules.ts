@@ -3,7 +3,10 @@
  * hooks at runtime so rule variants can be measured before they are written into src/core.
  */
 import { ipow } from '../core/math';
-import { MX, matrixDef, type MatrixDef } from '../core/matrices';
+import { MX, matrixDef, type MatrixDef, type MatrixInstance } from '../core/matrices';
+import { RunEngine } from '../core/run';
+
+const origIsEnabled = RunEngine.prototype.isEnabled;
 
 type Patch = (v: number) => void;
 
@@ -42,6 +45,17 @@ const PATCHES: Record<string, Patch> = {
       if (k > 0) api.xmult(ipow(MX.monotypeX, k));
     };
   },
+  cleanSheetMaxCells: (v) => {
+    def('clean_sheet').print = (api, p) => {
+      if (p.cellsAfter <= v) api.xmult(MX.cleanSheetX);
+    };
+  },
+  failureSheets: (v) => {
+    RunEngine.prototype.isEnabled = function (this: RunEngine, inst: MatrixInstance): boolean {
+      const c = this.state.contract;
+      return c.disabledUid !== inst.uid || c.sheetsUsed >= v;
+    };
+  },
   typeCaseSheets: (v) => {
     def('type_case').sheets = v;
   },
@@ -56,6 +70,7 @@ export function checkRuleKey(key: string): void {
 }
 
 export function restoreRules(): void {
+  RunEngine.prototype.isEnabled = origIsEnabled;
   for (const [id, d] of saved) Object.assign(matrixDef(id as Parameters<typeof matrixDef>[0]), d);
   for (const [id, d] of saved) {
     const cur = matrixDef(id as Parameters<typeof matrixDef>[0]) as unknown as Record<string, unknown>;

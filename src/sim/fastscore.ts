@@ -84,8 +84,8 @@ export interface FastPrintInput {
   sheetsLeft: number;
   sheetsUsed: number;
   printIndex: number;
-  /** Board has no content (other than jams) once the lines are cleared. */
-  cleanAfter: boolean;
+  /** Cells with content (other than jams) left once the lines are cleared (0 = clean forme). */
+  cellsAfter: number;
   rack: FastRack;
   states: readonly MatrixState[];
   slotCapacity: number;
@@ -212,9 +212,8 @@ export function fastScore(input: FastPrintInput): FastPrintResult {
     sheetsLeft: input.sheetsLeft,
     sheetsUsed: input.sheetsUsed,
     printIndex: input.printIndex,
-    boardCleanAfter: input.cleanAfter,
-    // No committed plate reads the exact count yet; only "clean or not" matters here.
-    cellsAfter: input.cleanAfter ? 0 : 1,
+    boardCleanAfter: input.cellsAfter === 0,
+    cellsAfter: input.cellsAfter,
     emptySlots: Math.max(0, input.slotCapacity - rack.owned),
   };
 
@@ -307,17 +306,18 @@ function pop(v: number): number {
   return n;
 }
 
-/** True when the cells outside the printed lines hold nothing but empties and jams. */
-export function cleanAfterLines(cells: ArrayLike<number>, lines: number): boolean {
+/** Content cells (not empty, not jam) outside the printed lines, i.e. left after clearing. */
+export function cellsAfterLines(cells: ArrayLike<number>, lines: number): number {
   const rowMask = lines & 0xff;
   const colMask = (lines >>> 8) & 0xff;
+  let n = 0;
   for (let i = 0; i < 64; i++) {
     const v = cells[i] as number;
     if (v === EMPTY || v === JAM) continue;
     if (rowMask & (1 << (i >>> 3)) || colMask & (1 << (i & 7))) continue;
-    return false;
+    n++;
   }
-  return true;
+  return n;
 }
 
 /** A deterministic stand-in for golden type's random draws: exactly 1 in 4 below 0.25. */

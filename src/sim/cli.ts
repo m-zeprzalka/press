@@ -27,7 +27,7 @@ import { playRun, type PoolKind, type RunConfig } from './play';
 import { defaultWorkers, readRecords, runJobs } from './runner';
 import { buildReport } from './report';
 import { selftestLines, selftestScoring } from './selftest';
-import { buildRack, cleanAfterLines, fastScore } from './fastscore';
+import { buildRack, cellsAfterLines, fastScore } from './fastscore';
 import { applyOverrides, parseOverrides, type Overrides } from './overrides';
 import { DEFAULT_WEIGHTS, type PlannerWeights } from './planner';
 import { DEFAULT_PLATE_POLICY, type PlatePolicy } from './bot';
@@ -430,7 +430,7 @@ function cmdBench(args: Args): void {
         sheetsLeft: 10,
         sheetsUsed: 10,
         printIndex: 3,
-        cleanAfter: cleanAfterLines(c.cells, c.packed),
+        cellsAfter: cellsAfterLines(c.cells, c.packed),
         rack: buildRack(
           c.slots.map((s) => s.inst.id),
           c.slots.map(() => true),

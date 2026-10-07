@@ -111,7 +111,7 @@ export function dealTray(ctx: DealContext): DealResult {
 
   // Constructive fallback: build a sequence that is placeable by construction.
   const sim = cloneRows(rows);
-  const pieces: DealtPiece[] = [];
+  const shapes: Shape[] = [];
   for (let i = 0; i < count; i++) {
     const fitting = pool.filter((s) => positions(sim, s).length > 0);
     // Prefer shapes allowed by the modifier; fall back to anything that fits, then to a dot.
@@ -128,7 +128,9 @@ export function dealTray(ctx: DealContext): DealResult {
       /* c8 ignore else -- @preserve */
       if (canPlace(sim, shape, x, y)) placeAndClear(sim, shape, x, y, rules);
     }
-    pieces.push({ shape: shape.id, ink: drawInk(ctx) });
+    shapes.push(shape);
   }
+  // Colours are drawn after every shape, as on the proven path (GDD §18.4: shapes, then colours).
+  const pieces: DealtPiece[] = shapes.map((sh) => ({ shape: sh.id, ink: drawInk(ctx) }));
   return { pieces, attempts: BALANCE.dealRetries, fallback: true, nodes: stats.nodes };
 }

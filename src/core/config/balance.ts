@@ -67,6 +67,8 @@ export const BALANCE = {
 
   // --- Modifiers (§7) ---
   rushSheets: 14,
+  /** Base sheets of a Large Format job (big pieces fill the forme faster). */
+  bigFormatSheets: 20,
   jamCount: [2, 2, 3, 3, 3, 4, 4, 4] as number[],
   leftoverCount: [8, 8, 10, 10, 10, 12, 12, 12] as number[],
 };

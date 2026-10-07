@@ -9,7 +9,7 @@ import { MATRIX_IDS, createInstance, type MatrixId, type MatrixInstance } from '
 import { Rng } from '../core/rng';
 import { scorePrint, type SlotInput } from '../core/scoring';
 import { fullLinesPacked, occupancyOf } from './fastboard';
-import { buildRack, cleanAfterLines, fastScore } from './fastscore';
+import { buildRack, cellsAfterLines, fastScore } from './fastscore';
 
 function randomBoard(rng: Rng): Cells {
   const cells: Cells = [];
@@ -96,7 +96,7 @@ export function selftestScoring(
       sheetsLeft,
       sheetsUsed,
       printIndex,
-      cleanAfter: cleanAfterLines(cells, packed),
+      cellsAfter: cellsAfterLines(cells, packed),
       rack: buildRack(
         plates.map((p) => p.id),
         enabled,

@@ -128,7 +128,9 @@ export function contractSpec(index: number, modifiers: readonly Modifier[]): Con
   const position = positionOf(index);
   const special = isSpecialIndex(index);
   const mods = special ? [...modifiers] : [];
-  const sheets = mods.some((m) => m.id === 'rush') ? BALANCE.rushSheets : BALANCE.baseSheets;
+  let sheets = BALANCE.baseSheets;
+  if (mods.some((m) => m.id === 'rush')) sheets = Math.min(sheets, BALANCE.rushSheets);
+  if (mods.some((m) => m.id === 'big_format')) sheets = Math.min(sheets, BALANCE.bigFormatSheets);
   return { index, edition, position, special, quota: quotaFor(index, mods), sheets, modifiers: mods };
 }
 

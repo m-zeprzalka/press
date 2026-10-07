@@ -3,7 +3,7 @@
  * Pure reducers over run events — persistence lives in the platform layer.
  */
 import { BALANCE } from './config/balance';
-import { STARTER_MATRICES, isMatrixId, type MatrixId } from './matrices';
+import { MATRIX_IDS, STARTER_MATRICES, isMatrixId, type MatrixId } from './matrices';
 import type { RunEvent, RunState } from './run';
 
 export const META_VERSION = 1;
@@ -130,11 +130,14 @@ export function newMeta(): MetaState {
   };
 }
 
-/** Plates that may appear in offers. */
+/**
+ * Plates that may appear in offers, in catalogue order: offers pick by index, so the order must
+ * not depend on the order in which achievements were earned (GDD §18.4).
+ */
 export function unlockedPool(meta: MetaState): MatrixId[] {
   const set = new Set<MatrixId>(STARTER_MATRICES);
   for (const id of meta.unlocked) set.add(id);
-  return [...set];
+  return MATRIX_IDS.filter((id) => set.has(id));
 }
 
 export interface MetaUpdate {

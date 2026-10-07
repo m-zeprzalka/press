@@ -636,6 +636,9 @@ export class RunEngine {
       },
     ];
     s.tray = [null, null, null];
+    // GDD §7 / D9: after a special job the offer shows the next edition's special rule, so it is
+    // fixed (and saved) now, from the rack as it stands — not whenever a caller first asks for it.
+    if (isSpecialIndex(s.contractIndex)) this.ensureEditionModifiers(editionOf(s.contractIndex) + 1);
     if (s.contractIndex === totalContracts() - 1 && !s.endless) {
       s.phase = 'victory';
       events.push({ type: 'victory' });
@@ -691,12 +694,14 @@ export class RunEngine {
     let hasInk = false;
     // Ink plates are the colour plates (Ink Well is not one, despite its id).
     const isInkPlate = (id: MatrixId) => matrixDef(id).inkAffinity !== undefined;
-    const take = (r: Rarity): MatrixId | null => {
-      // Fall back to lower rarities when a pool is exhausted.
-      for (let k = order.indexOf(r); k >= 0; k--) {
-        const list = byRarity[order[k] as Rarity].filter(
-          (id) => !cards.includes(id) && !(hasInk && isInkPlate(id)),
-        );
+    const take = (r: Rarity, guaranteed: boolean): MatrixId | null => {
+      // Fall back to lower rarities when a pool is exhausted (§8.1). The rare-or-better
+      // guarantee (§6.3) first tries the other rare-or-better pool, then settles for a common.
+      const chain: Rarity[] = guaranteed
+        ? [r, r === 'rare' ? 'legendary' : 'rare', 'common']
+        : order.slice(0, order.indexOf(r) + 1).reverse();
+      for (const k of chain) {
+        const list = byRarity[k].filter((id) => !cards.includes(id) && !(hasInk && isInkPlate(id)));
         if (list.length > 0) return rng.pick(list);
       }
       return null;
@@ -712,7 +717,7 @@ export class RunEngine {
       } else {
         rarity = order[rng.weightedIndex([weights.common, weights.rare, weights.legendary])] as Rarity;
       }
-      const id = take(rarity);
+      const id = take(rarity, needRare);
       if (!id) break;
       if (isInkPlate(id)) hasInk = true;
       cards.push(id);

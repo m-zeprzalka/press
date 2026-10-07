@@ -11,6 +11,7 @@
  * → cash in") all come out of one formula.
  */
 import { BLIND, EMPTY, JAM } from '../core/board';
+import { BALANCE } from '../core/config/balance';
 import type { MatrixDef, MatrixState } from '../core/matrices';
 import {
   FAST_SHAPES,
@@ -486,7 +487,10 @@ export class Planner {
       const m = lineCellMasks(lines);
       const nlo = lo & ~m.lo;
       const nhi = hi & ~m.hi;
-      const clean = this.hasJam ? ((nlo & ~this.jamLoM) | (nhi & ~this.jamHiM)) === 0 : (nlo | nhi) === 0;
+      // Content left after clearing (jams never clear and do not count).
+      const cellsAfter = this.hasJam
+        ? popcount32(nlo & ~this.jamLoM) + popcount32(nhi & ~this.jamHiM)
+        : popcount32(nlo) + popcount32(nhi);
       const r = fastScore({
         cells: scratchCells,
         lines,
@@ -495,7 +499,7 @@ export class Planner {
         sheetsLeft,
         sheetsUsed,
         printIndex,
-        cleanAfter: clean,
+        cellsAfter,
         rack: inp.rack,
         states,
         slotCapacity: inp.slotCapacity,
@@ -590,8 +594,9 @@ export class Planner {
     const progressFrac = Math.min(total / inp.quota, 1.5);
     if (n.end === END_WON) {
       let v = 2 + w.tbProgress * progressFrac;
-      if (n.sheetsUsed <= 0.6 * inp.sheetsBase + 1e-9) v += w.early4;
-      if (n.sheetsUsed <= 0.4 * inp.sheetsBase + 1e-9) v += w.earlyRare;
+      // Early-finish bonus (GDD §6.3), same test as RunEngine.earlyBonus().
+      if (n.sheetsUsed / inp.sheetsBase <= BALANCE.earlyShare4Cards) v += w.early4;
+      if (n.sheetsUsed / inp.sheetsBase <= BALANCE.earlyShareRare) v += w.earlyRare;
       return v - 0.001 * n.sheetsUsed;
     }
     if (n.end === END_JAM) return -2 + w.tbProgress * progressFrac;

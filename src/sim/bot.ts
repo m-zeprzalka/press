@@ -27,7 +27,7 @@ import {
 import { Rng } from '../core/rng';
 import type { RunEngine, RunEvent, SlotRef } from '../core/run';
 import { fastShape } from './fastboard';
-import { buildRack, cleanAfterLines, fastScore, patternRandom, type FastRack } from './fastscore';
+import { buildRack, cellsAfterLines, fastScore, patternRandom, type FastRack } from './fastscore';
 import {
   DEFAULT_WEIGHTS,
   Planner,
@@ -159,7 +159,7 @@ export interface PrintSample {
   sheetsLeft: number;
   sheetsUsed: number;
   printIndex: number;
-  cleanAfter: boolean;
+  cellsAfter: number;
 }
 
 export interface OfferDecision {
@@ -192,7 +192,7 @@ function synthSamples(): PrintSample[] {
       sheetsLeft: 20 - sheetsUsed,
       sheetsUsed,
       printIndex: 2,
-      cleanAfter: cleanAfterLines(cells, lineSpec),
+      cellsAfter: cellsAfterLines(cells, lineSpec),
     };
   };
   return [
@@ -265,7 +265,7 @@ export class Bot {
           sheetsLeft: ctx.sheetsLeft,
           sheetsUsed: ctx.sheetsUsed,
           printIndex: ctx.printIndex,
-          cleanAfter: ctx.boardCleanAfter,
+          cellsAfter: ctx.cellsAfter,
         };
         if (this.samples.length < SAMPLE_CAP) this.samples.push(sample);
         else {
@@ -308,7 +308,7 @@ export class Bot {
         sheetsLeft: s.sheetsLeft,
         sheetsUsed: s.sheetsUsed,
         printIndex: s.printIndex,
-        cleanAfter: s.cleanAfter,
+        cellsAfter: s.cellsAfter,
         rack,
         states,
         slotCapacity: BALANCE.slots,
@@ -323,7 +323,7 @@ export class Bot {
 
   private futureModel(engine: RunEngine, rack: FastRack, states: MatrixState[], wet: boolean): FutureModel {
     // Recomputed once per contract (and when the rack changes); rates move slowly.
-    const key = `${engine.state.contractIndex}|${engine.state.plates.map((p) => p.uid).join(',')}|${wet ? 1 : 0}|${engine.state.contract.disabledUid ?? ''}`;
+    const key = `${engine.state.contractIndex}|${engine.state.plates.map((p) => (engine.isEnabled(p) ? p.uid : -p.uid)).join(',')}|${wet ? 1 : 0}`;
     if (this.future && key === this.futureKey) return this.future;
     const maxStreak = 48;
     const maxSheets = 40;
@@ -344,7 +344,7 @@ export class Bot {
           sheetsLeft: s.sheetsLeft,
           sheetsUsed: s.sheetsUsed,
           printIndex: s.printIndex,
-          cleanAfter: s.cleanAfter,
+          cellsAfter: s.cellsAfter,
           rack,
           states,
           slotCapacity: BALANCE.slots,
