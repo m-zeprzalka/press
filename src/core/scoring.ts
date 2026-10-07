@@ -11,7 +11,18 @@
  */
 import { BALANCE } from './config/balance';
 import { BOARD_SIZE } from './pieces';
-import { EMPTY, JAM, clearLines, countKind, isBoardClean, isInk, lineCells, type Cells, type FullLines, type Ink } from './board';
+import {
+  EMPTY,
+  JAM,
+  clearLines,
+  countKind,
+  isBoardClean,
+  isInk,
+  lineCells,
+  type Cells,
+  type FullLines,
+  type Ink,
+} from './board';
 import {
   matrixDef,
   type CellCtx,
