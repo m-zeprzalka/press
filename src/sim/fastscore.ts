@@ -213,6 +213,8 @@ export function fastScore(input: FastPrintInput): FastPrintResult {
     sheetsUsed: input.sheetsUsed,
     printIndex: input.printIndex,
     boardCleanAfter: input.cleanAfter,
+    // No committed plate reads the exact count yet; only "clean or not" matters here.
+    cellsAfter: input.cleanAfter ? 0 : 1,
     emptySlots: Math.max(0, input.slotCapacity - rack.owned),
   };
 
