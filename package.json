@@ -21,6 +21,7 @@
     "sim": "tsx src/sim/cli.ts",
     "build:font": "tsx scripts/build-font.ts",
     "build:icons": "tsx scripts/build-icons.ts",
+    "build:textures": "tsx scripts/build-textures.ts",
     "e2e": "playwright test",
     "cap:sync": "npm run build && cap sync android",
     "android:debug": "npm run cap:sync && cd android && ./gradlew assembleDebug",
