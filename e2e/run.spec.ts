@@ -55,3 +55,14 @@ test('an interrupted run resumes after a reload', async ({ page }) => {
   expect(JSON.parse(after)).toEqual(JSON.parse(before));
   expect(errors).toEqual([]);
 });
+
+test('back during play opens Pause instead of leaving; back again resumes', async ({ page }) => {
+  const errors = await boot(page);
+  await startRun(page);
+  await page.keyboard.press('Escape'); // web stand-in for the Android back button
+  await expect.poll(() => screen(page)).toBe('pause');
+  await page.keyboard.press('Escape');
+  await expect.poll(() => screen(page)).toBe(null);
+  expect(await phase(page)).toBe('playing');
+  expect(errors).toEqual([]);
+});

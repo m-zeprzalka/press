@@ -28,8 +28,18 @@ export class Tutorial {
   private idleTimer = 0;
   private advancing = false;
   private streakHintShown = false;
+  private advanceTimer = 0;
+  private idleListener: (() => void) | null = null;
+  private disposed = false;
 
-  constructor(private readonly ctl: GameController) {}
+  /**
+   * @param replay Started from Settings by someone who already finished it: the sandbox steps
+   *   are shown, but it ends back on the title instead of starting (and saving over) a real run.
+   */
+  constructor(
+    private readonly ctl: GameController,
+    readonly replay = false,
+  ) {}
 
   start(): void {
     this.setupStep1();
@@ -94,6 +104,10 @@ export class Tutorial {
   }
 
   private startStep3(): void {
+    if (this.replay) {
+      this.ctl.finishTutorial();
+      return;
+    }
     this.step = 3;
     this.sandbox = false;
     this.target = null;
@@ -116,7 +130,9 @@ export class Tutorial {
         this.advancing = true;
         const done = this.step === 1 ? t('tut.step1_done') : t('tut.step2_done');
         this.showCard(done, false);
-        window.setTimeout(() => {
+        window.clearTimeout(this.advanceTimer);
+        this.advanceTimer = window.setTimeout(() => {
+          if (this.disposed) return;
           this.advancing = false;
           if (this.step === 1) this.setupStep2();
           else this.startStep3();
@@ -162,7 +178,7 @@ export class Tutorial {
     }
     this.host.append(card);
     this.card = card;
-    if (autoHideMs) window.setTimeout(() => card.remove(), autoHideMs);
+    if (autoHideMs) window.setTimeout(() => this.card === card && card.remove(), autoHideMs);
   }
 
   private skip(): void {
@@ -175,16 +191,18 @@ export class Tutorial {
     this.clearHand();
     const run = () => this.animateHand();
     this.handTimer = window.setTimeout(run, 600);
-    const idle = () => {
-      window.clearTimeout(this.idleTimer);
-      this.idleTimer = window.setTimeout(() => this.target && this.animateHand(), 2600);
-    };
-    this.ctl.scene.canvas.addEventListener('pointerup', idle);
+    if (!this.idleListener) {
+      this.idleListener = () => {
+        window.clearTimeout(this.idleTimer);
+        this.idleTimer = window.setTimeout(() => !this.disposed && this.target && this.animateHand(), 2600);
+      };
+      this.ctl.scene.canvas.addEventListener('pointerup', this.idleListener);
+    }
   }
 
   private animateHand(): void {
     const tg = this.target;
-    if (!tg) return;
+    if (!tg || this.disposed) return;
     const api = this.ctl.debugApi() as {
       dragPoints: (
         s: SlotRef,
@@ -230,7 +248,12 @@ export class Tutorial {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.target = null;
+    window.clearTimeout(this.advanceTimer);
     this.clearHand();
+    if (this.idleListener) this.ctl.scene.canvas.removeEventListener('pointerup', this.idleListener);
+    this.idleListener = null;
     this.card?.remove();
     this.card = null;
   }

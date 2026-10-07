@@ -467,6 +467,31 @@ describe('rewarded', () => {
     expect(await settle(first)).toBe('rewarded');
   });
 
+  it('a double tap while the ad is still loading is ignored and leaves the first untouched', async () => {
+    sdk.s.load = 'hang';
+    const { ads, fullscreen } = await ready();
+    const h1 = hooks();
+    const h2 = hooks();
+    let first: string | null = null;
+    void ads.showRewarded('reroll', h1).then((r) => (first = r));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await ads.showRewarded('reroll', h2)).toBe('unavailable'); // instantly, no side effects
+    expect(h2.beforeShow).not.toHaveBeenCalled();
+    expect(fullscreen).toEqual([]);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(first).toBe('unavailable');
+  });
+
+  it('stillValid() = false after loading → the ad never opens', async () => {
+    const { ads } = await ready();
+    const h = { ...hooks(), stillValid: vi.fn(() => false) };
+    expect(await settle(ads.showRewarded('reprint', h))).toBe('unavailable');
+    expect(h.stillValid).toHaveBeenCalledTimes(1);
+    expect(h.beforeShow).not.toHaveBeenCalled();
+    expect(sdk.showRewardVideoAd).not.toHaveBeenCalled();
+    expect(h.rewards).toBe(0);
+  });
+
   it('beforeShow failure aborts before the ad opens', async () => {
     const { ads } = await ready();
     const h = hooks();

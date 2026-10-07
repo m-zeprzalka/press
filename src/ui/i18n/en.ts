@@ -398,6 +398,7 @@ export const EN: Record<string, string> = {
   'toast.share_failed': 'Could not share',
   'webview.outdated': 'Please update Android System WebView to play PRESS.',
   'window.too_small': 'Make the window bigger',
+  'ad.loading': 'Loading the ad…',
   'ad.test': 'Test ad',
   'ad.unavailable': 'Ad unavailable — try again',
   'sr.print':

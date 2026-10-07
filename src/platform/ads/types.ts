@@ -13,6 +13,11 @@ export interface RewardedHooks {
   beforeShow(): Promise<void>;
   /** Called once, synchronously from the SDK's Rewarded event: persist `rewardGranted` now. */
   onReward(): void;
+  /**
+   * Checked after the ad has loaded and right before it would open: returning false (the player
+   * cancelled, or the screen that asked for the reward is gone) skips the ad → 'unavailable'.
+   */
+  stillValid?(): boolean;
 }
 
 export interface AdsStartOptions {

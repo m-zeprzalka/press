@@ -444,8 +444,17 @@ export class GameController {
     this.afterAction();
   }
 
+  /** Back handler for the game screen itself (layers above it register their own). */
+  private popGameBack: (() => void) | null = null;
+
   private enterGame(): void {
     this.inGame = true;
+    // GDD §12.3: back in play cancels a drag, otherwise opens Pause — never minimizes mid-run.
+    this.popGameBack ??= this.s.back.push(() => {
+      if (this.input.dragging) this.input.cancelAll();
+      else if (!this.ui.has('pause')) this.openPause();
+      return true;
+    });
     this.s.audio.setMusic('game');
     this.relayout();
     this.mountHudButtons();
@@ -455,6 +464,8 @@ export class GameController {
 
   private leaveGame(): void {
     this.inGame = false;
+    this.popGameBack?.();
+    this.popGameBack = null;
     this.input.cancelAll();
     this.input.clearSelection();
     for (const b of this.hudButtons) b.remove();
@@ -636,7 +647,12 @@ export class GameController {
             this.showOffer();
           };
           if (kind === 'free') doReroll();
-          else void this.rewarded('reroll', doReroll);
+          else
+            void this.rewarded(
+              'reroll',
+              doReroll,
+              () => this.engine === engine && this.ui.has('offer') && engine.canReroll('ad'),
+            );
         },
       },
     );
@@ -860,7 +876,12 @@ export class GameController {
         }
         this.handleEvents(engine.continueRun());
       };
-      if (mode === 'ad') void this.rewarded('reprint', apply);
+      if (mode === 'ad')
+        void this.rewarded(
+          'reprint',
+          apply,
+          () => this.engine === engine && this.ui.has('reprint') && engine.canContinue(),
+        );
       else apply();
     };
     const decline = async () => {
@@ -914,6 +935,21 @@ export class GameController {
     );
   }
 
+  /** "New run" on Results; after a daily, never silently replace an unfinished normal run. */
+  private async newRunAfterResults(): Promise<void> {
+    if (this.runKind === 'daily') {
+      const saved = await this.s.saves.loadRun('normal');
+      if (saved && saved.phase !== 'over') {
+        const replace = await this.ui.confirm(t('title.confirm_new'), t('common.yes'), t('common.no'));
+        if (!replace) {
+          this.showTitle();
+          return;
+        }
+      }
+    }
+    await this.startRun('normal');
+  }
+
   private showResults(): void {
     const engine = this.engine;
     if (!engine) return;
@@ -953,11 +989,7 @@ export class GameController {
           canRetryDaily,
         },
         {
-          newRun: () =>
-            void leave(
-              'new_run_button',
-              () => void this.startRun(this.runKind === 'daily' ? 'normal' : 'normal'),
-            ),
+          newRun: () => void leave('new_run_button', () => void this.newRunAfterResults()),
           menu: () => void leave('menu_button', () => this.showTitle()),
           share: () => void this.shareResult(),
           retryDaily: () => void leave('new_run_button', () => void this.startRun('daily')),
@@ -994,38 +1026,81 @@ export class GameController {
   // ================================================================== rewarded ads
 
   /** Shows a rewarded ad (or grants instantly for No-ads buyers) and persists the pending reward. */
-  private async rewarded(kind: RewardKind, grant: () => void): Promise<void> {
+  /** True while a rewarded request is loading or on screen: further ad taps are ignored. */
+  private adInFlight = false;
+
+  /**
+   * Rewarded ad → `grant`. `stillValid` is re-checked before the ad opens and before granting:
+   * the screen that asked may be gone (cancelled, back pressed, run moved on).
+   */
+  private async rewarded(
+    kind: RewardKind,
+    grant: () => void,
+    stillValid: () => boolean = () => true,
+  ): Promise<void> {
+    if (this.adInFlight) return;
+    const safeGrant = () => {
+      if (!stillValid()) return;
+      try {
+        grant();
+      } catch (e) {
+        console.error('[press] reward grant failed', e);
+      }
+    };
     if (this.s.iap.entitled) {
-      grant();
+      safeGrant();
       return;
     }
+    this.adInFlight = true;
+    let cancelled = false;
+    const cancel = () => {
+      cancelled = true;
+      this.ui.close('adwait', false);
+    };
+    this.ui.show(
+      'adwait',
+      h(
+        'div',
+        { class: 'column', style: 'text-align:center' },
+        h('p', { style: 'margin:0' }, t('ad.loading')),
+        button(t('common.cancel'), cancel, { variant: 'ghost' }),
+      ),
+      { kind: 'dialog', dismissible: false, onBack: () => (cancel(), true) },
+    );
     let granted = false;
-    const result = await this.s.ads.showRewarded(kind, {
-      beforeShow: async () => {
-        this.saveRun();
-        this.s.saves.saveJSON(KEYS.pendingAd, {
-          kind,
-          runKind: this.runKind,
-          granted: false,
-        } satisfies PendingAd);
-        await this.s.saves.flush();
-        this.s.audio.suspend();
-      },
-      onReward: () => {
-        granted = true;
-        this.s.saves.saveJSON(KEYS.pendingAd, {
-          kind,
-          runKind: this.runKind,
-          granted: true,
-        } satisfies PendingAd);
-      },
-    });
-    this.s.audio.resume();
-    this.s.saves.saveJSON(KEYS.pendingAd, null);
+    let result: string = 'unavailable';
+    try {
+      result = await this.s.ads.showRewarded(kind, {
+        stillValid: () => !cancelled && stillValid(),
+        beforeShow: async () => {
+          this.saveRun();
+          this.s.saves.saveJSON(KEYS.pendingAd, {
+            kind,
+            runKind: this.runKind,
+            granted: false,
+          } satisfies PendingAd);
+          await this.s.saves.flush();
+          this.s.audio.suspend();
+        },
+        onReward: () => {
+          granted = true;
+          this.s.saves.saveJSON(KEYS.pendingAd, {
+            kind,
+            runKind: this.runKind,
+            granted: true,
+          } satisfies PendingAd);
+        },
+      });
+    } finally {
+      this.adInFlight = false;
+      this.ui.close('adwait', false);
+      this.s.audio.resume();
+      this.s.saves.saveJSON(KEYS.pendingAd, null);
+    }
     if (granted || result === 'rewarded') {
       this.rewardedThisRun = true;
-      grant();
-    } else if (result === 'unavailable') toast(t('ad.unavailable'));
+      safeGrant();
+    } else if (result === 'unavailable' && !cancelled) toast(t('ad.unavailable'));
   }
 
   /** After a process death during an ad: apply or re-offer the reward (GDD §11.4). */
@@ -1148,7 +1223,8 @@ export class GameController {
 
   startTutorial(): void {
     this.ui.clear();
-    this.tutorial = new Tutorial(this);
+    this.tutorial?.dispose();
+    this.tutorial = new Tutorial(this, this.meta.tutorialDone);
     this.tutorial.start();
   }
 
@@ -1169,7 +1245,11 @@ export class GameController {
     tut?.dispose();
     this.meta.tutorialDone = true;
     this.s.saves.saveMeta(this.meta);
-    if (tut?.sandbox) {
+    if (tut?.replay) {
+      // A replay never touches the saved run: back to the title (Resume stays available).
+      this.engine = null;
+      this.showTitle();
+    } else if (tut?.sandbox) {
       // Steps 1–2 were a sandbox; begin a real run (the tutorial's step 3 already did otherwise).
       void this.startRun('normal');
     }

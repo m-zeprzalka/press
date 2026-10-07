@@ -50,7 +50,7 @@ export interface AdsService {
   available(kind: 'rewarded' | 'interstitial'): boolean;
   showRewarded(
     kind: RewardKind,
-    hooks: { beforeShow(): Promise<void>; onReward(): void },
+    hooks: { beforeShow(): Promise<void>; onReward(): void; stillValid?(): boolean },
   ): Promise<RewardResult>;
   maybeShowInterstitial(ctx: {
     trigger: InterstitialTrigger;

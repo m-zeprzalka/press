@@ -406,6 +406,7 @@ export const PL: Record<string, string> = {
   'toast.share_failed': 'Nie udało się udostępnić',
   'webview.outdated': 'Zaktualizuj Android System WebView, aby zagrać w PRESS.',
   'window.too_small': 'Powiększ okno',
+  'ad.loading': 'Ładowanie reklamy…',
   'ad.test': 'Reklama testowa',
   'ad.unavailable': 'Reklama niedostępna — spróbuj ponownie',
   'sr.print':

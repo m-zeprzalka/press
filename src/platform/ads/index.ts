@@ -264,6 +264,61 @@ export function createAdsService(opts: AdsServiceOptions): AdsService {
     return 'rewarded';
   };
 
+  let rewardedRequest = false;
+
+  /** One rewarded request; showRewarded() guards against re-entry around it. */
+  async function showRewardedOnce(kind: RewardedKind, hooks: RewardedHooks): Promise<RewardedResult> {
+    if (noAds) return grantFree(hooks);
+    if (showing || disposed) return 'unavailable';
+    const pending = phase === 'consent' || phase === 'initializing';
+    if (!driver.initialized && !pending) {
+      if (strict)
+        throw new AdsOrderError(`showRewarded('${kind}') [phase=${phase}, session=${sessionIndex}]`);
+      return 'unavailable';
+    }
+    const ready = async (): Promise<boolean> => {
+      if (flow) await flow;
+      if (phase !== 'ready' || !sdkAllowed()) return false;
+      return load('rewarded');
+    };
+    const loaded = await withTimeout(ready(), loadTimeoutMs, false);
+    if (!loaded || showing) {
+      if (phase === 'ready') preload('rewarded');
+      return 'unavailable';
+    }
+    if (hooks.stillValid && !hooks.stillValid()) return 'unavailable';
+    if (noAds) return grantFree(hooks);
+    try {
+      await hooks.beforeShow();
+    } catch (e) {
+      console.error('[press.ads] beforeShow failed', e);
+      return 'unavailable';
+    }
+    let granted = false;
+    let result: DriverRewardedResult = 'failed';
+    setShowing(true);
+    try {
+      result = await driver.showRewarded(() => {
+        if (granted) return;
+        granted = true;
+        hooks.onReward();
+      });
+    } catch (e) {
+      if (e instanceof AdsOrderError) throw e;
+      console.warn('[press.ads] showRewarded failed', e);
+    } finally {
+      loaders.rewarded.ready = false;
+      setShowing(false);
+      if (granted || result !== 'failed') {
+        ads = onFullscreenShown(ads, now(), 'rewarded');
+        persist();
+      }
+      preload('rewarded');
+    }
+    if (granted) return 'rewarded';
+    return result === 'dismissed' ? 'dismissed' : 'unavailable';
+  }
+
   const service: AdsService = {
     async start(o: AdsStartOptions) {
       sessionIndex = Math.max(sessionIndex, Math.floor(o.sessionIndex));
@@ -349,54 +404,14 @@ export function createAdsService(opts: AdsServiceOptions): AdsService {
     },
 
     async showRewarded(kind: RewardedKind, hooks: RewardedHooks): Promise<RewardedResult> {
-      if (noAds) return grantFree(hooks);
-      if (showing || disposed) return 'unavailable';
-      const pending = phase === 'consent' || phase === 'initializing';
-      if (!driver.initialized && !pending) {
-        if (strict)
-          throw new AdsOrderError(`showRewarded('${kind}') [phase=${phase}, session=${sessionIndex}]`);
-        return 'unavailable';
-      }
-      const ready = async (): Promise<boolean> => {
-        if (flow) await flow;
-        if (phase !== 'ready' || !sdkAllowed()) return false;
-        return load('rewarded');
-      };
-      const loaded = await withTimeout(ready(), loadTimeoutMs, false);
-      if (!loaded || showing) {
-        if (phase === 'ready') preload('rewarded');
-        return 'unavailable';
-      }
-      if (noAds) return grantFree(hooks);
+      // A second request while one is loading or on screen (double tap) has no side effects.
+      if (rewardedRequest) return 'unavailable';
+      rewardedRequest = true;
       try {
-        await hooks.beforeShow();
-      } catch (e) {
-        console.error('[press.ads] beforeShow failed', e);
-        return 'unavailable';
-      }
-      let granted = false;
-      let result: DriverRewardedResult = 'failed';
-      setShowing(true);
-      try {
-        result = await driver.showRewarded(() => {
-          if (granted) return;
-          granted = true;
-          hooks.onReward();
-        });
-      } catch (e) {
-        if (e instanceof AdsOrderError) throw e;
-        console.warn('[press.ads] showRewarded failed', e);
+        return await showRewardedOnce(kind, hooks);
       } finally {
-        loaders.rewarded.ready = false;
-        setShowing(false);
-        if (granted || result !== 'failed') {
-          ads = onFullscreenShown(ads, now(), 'rewarded');
-          persist();
-        }
-        preload('rewarded');
+        rewardedRequest = false;
       }
-      if (granted) return 'rewarded';
-      return result === 'dismissed' ? 'dismissed' : 'unavailable';
     },
 
     async maybeShowInterstitial(req: InterstitialRequest) {
