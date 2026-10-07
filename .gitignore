@@ -1,0 +1,28 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+.vite/
+# Android build outputs (project itself is committed)
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+android/.idea/
+*.iml
+# Signing material must never be committed
+*.jks
+*.keystore
+keystore.properties
+android/app/release-key*
+.env
+.env.*

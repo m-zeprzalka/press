@@ -1,0 +1,11 @@
+node_modules
+dist
+dev-dist
+coverage
+android
+public/fonts
+package-lock.json
+docs/balance-report.md
+test-results
+playwright-report
+*.md
