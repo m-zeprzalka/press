@@ -16,7 +16,7 @@ import {
   type AchievementId,
   type MetaState,
 } from '../core/meta';
-import { RunEngine, type RunEvent, type SlotRef } from '../core/run';
+import { RunEngine, type RunEvent, type RunState, type SlotRef } from '../core/run';
 import type { Texture } from 'pixi.js';
 import { InputController } from '../render/input';
 import { Presenter } from '../render/presenter';
@@ -1208,6 +1208,12 @@ export class GameController {
         gl?.getExtension('WEBGL_lose_context')?.loseContext();
       },
       tutorialStep: () => this.tutorial?.step ?? null,
+      /** Installs a crafted run state (no saves) — performance and e2e scenarios. */
+      loadState: (state: RunState) => this.installSandbox(RunEngine.restore(state)),
+      /** Clears the frame-time samples behind frameStats(). */
+      resetFrameStats: () => {
+        this.scene.animator.frameTimes.length = 0;
+      },
       /** Direct placement (bypasses pointer input) — debugging only. */
       place: (slot: SlotRef, x: number, y: number) => this.place(slot, x, y),
       ctl: this,
