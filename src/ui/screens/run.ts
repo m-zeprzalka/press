@@ -526,12 +526,24 @@ export interface ResultsView {
   canRetryDaily: boolean;
 }
 
+function statTiles(totals: RunTotals): HTMLElement {
+  const tile = (k: string, val: string) =>
+    h('div', { class: 'stat-tile' }, h('div', { class: 'v' }, val), h('div', { class: 'k' }, k));
+  return h(
+    'div',
+    { class: 'results-stats' },
+    tile(t('results.jobs'), String(totals.contractsWon)),
+    tile(t('results.score'), fmtInt(totals.score)),
+    tile(t('results.best_print'), fmtInt(totals.bestPrint)),
+    tile(t('results.lines'), fmtInt(totals.lines)),
+    tile(t('results.max_streak'), String(totals.maxStreak)),
+  );
+}
+
 export function buildResults(
   v: ResultsView,
   act: { newRun(): void; menu(): void; share(): void; retryDaily(): void },
 ): HTMLElement {
-  const tile = (k: string, val: string) =>
-    h('div', { class: 'stat-tile' }, h('div', { class: 'v' }, val), h('div', { class: 'k' }, k));
   const col = h(
     'div',
     { class: 'column' },
@@ -557,17 +569,7 @@ export function buildResults(
         t('results.new_record'),
       ),
     );
-  col.append(
-    h(
-      'div',
-      { class: 'results-stats' },
-      tile(t('results.jobs'), String(v.totals.contractsWon)),
-      tile(t('results.score'), fmtInt(v.totals.score)),
-      tile(t('results.best_print'), fmtInt(v.totals.bestPrint)),
-      tile(t('results.lines'), fmtInt(v.totals.lines)),
-      tile(t('results.max_streak'), String(v.totals.maxStreak)),
-    ),
-  );
+  col.append(statTiles(v.totals));
   if (v.daily) col.append(h('div', { class: 'grid-line', 'aria-hidden': 'true' }, v.daily.grid));
   for (const id of v.unlocks)
     col.append(
@@ -605,8 +607,9 @@ export function buildVictory(totals: RunTotals, act: { endless(): void; finish()
     svgIcon(uiIcon('trophy'), 'icon'),
     h('h1', { class: 'riso-title', style: 'font-size:2.4rem' }, t('victory.title')),
     h('p', null, t('victory.body')),
-    h('div', { class: 'display', style: 'font-size:1.6rem' }, fmtInt(totals.score)),
+    statTiles(totals),
     button(t('victory.endless'), act.endless, { variant: 'primary', wide: true }),
+    h('div', { class: 'muted', style: 'font-size:.85rem;margin-top:-6px' }, t('victory.endless_note')),
     button(t('victory.finish'), act.finish, { wide: true }),
   );
 }

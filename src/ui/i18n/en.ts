@@ -231,6 +231,7 @@ export const EN: Record<string, string> = {
   'victory.title': 'Full print run!',
   'victory.body': 'All 24 jobs delivered.',
   'victory.endless': 'Keep printing (endless)',
+  'victory.endless_note': 'Quotas keep rising every job; your record keeps counting.',
   'victory.finish': 'Finish run',
   'victory.confirm': 'Finish the run here?',
 

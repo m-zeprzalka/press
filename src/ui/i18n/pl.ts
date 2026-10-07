@@ -236,6 +236,7 @@ export const PL: Record<string, string> = {
   'victory.title': 'Pełny nakład!',
   'victory.body': 'Wszystkie 24 zlecenia oddane.',
   'victory.endless': 'Drukuj dalej (bez końca)',
+  'victory.endless_note': 'Nakład rośnie z każdym zleceniem, a rekord liczy się dalej.',
   'victory.finish': 'Zakończ run',
   'victory.confirm': 'Zakończyć run w tym miejscu?',
 
