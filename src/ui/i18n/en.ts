@@ -401,6 +401,7 @@ export const EN: Record<string, string> = {
   'tip.drag_hint': 'Drag onto the forme',
 
   // Misc
+  'toast.sold': 'Plate sold',
   'toast.copied': 'Copied to clipboard',
   'toast.share_failed': 'Could not share',
   'webview.outdated': 'Please update Android System WebView to play PRESS.',

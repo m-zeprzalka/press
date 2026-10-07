@@ -22,7 +22,7 @@ import { InputController } from '../render/input';
 import { Presenter } from '../render/presenter';
 import type { RackCard } from '../render/rackView';
 import type { GameScene } from '../render/scene';
-import { announce, button, h, svgIcon, toast } from '../ui/dom';
+import { announce, button, h, svgIcon, toast, toastAction } from '../ui/dom';
 import { detectLang, fmtInt, setLang, t } from '../ui/i18n';
 import { modifierIcon, plateIcon, uiIcon } from '../ui/iconset';
 import type { UiManager } from '../ui/manager';
@@ -303,7 +303,16 @@ export class GameController {
           const langChanged = patch.lang !== undefined && patch.lang !== this.settings.lang;
           this.settings = { ...this.settings, ...patch };
           this.applySettings();
-          if (langChanged) this.showSettings(fromGame);
+          if (langChanged) {
+            // Rebuild what lies under Settings in the new language, then Settings on top.
+            if (fromGame) {
+              // Only Pause sits directly under Settings; screens below it (an offer) stay.
+              this.ui.close('settings', false);
+              this.ui.close('pause', false);
+              this.openPause();
+            } else this.showTitle();
+            this.showSettings(fromGame);
+          }
         },
         privacyOptions: () => void this.s.ads.showPrivacyOptions(),
         policy: () => this.s.openUrl(PRIVACY_POLICY_URL),
@@ -550,8 +559,29 @@ export class GameController {
   }
 
   sell(uid: number): void {
-    if (!this.engine) return;
-    this.handleEvents(this.engine.sell(uid));
+    const engine = this.engine;
+    if (!engine) return;
+    const before = engine.snapshot();
+    this.handleEvents(engine.sell(uid));
+    if (engine.state.phase === 'playing' || engine.state.phase === 'last_chance')
+      this.offerSaleUndo(engine, before);
+  }
+
+  /** Undo of the last sale (GDD §9.2): until the next action or 5 s. */
+  private saleUndo: { token: object; dismiss: () => void } | null = null;
+
+  private offerSaleUndo(engine: RunEngine, before: RunState): void {
+    const token = {};
+    const dismiss = toastAction(t('toast.sold'), t('plate.undo'), () => {
+      if (this.saleUndo?.token !== token || this.engine !== engine) return;
+      this.saleUndo = null;
+      this.engine = RunEngine.restore(before);
+      this.saveRun();
+      this.presenter.syncAll(this.engine);
+      this.refreshHud();
+      this.afterAction();
+    });
+    this.saleUndo = { token, dismiss };
   }
 
   private counterTap(): void {
@@ -563,6 +593,11 @@ export class GameController {
   private handleEvents(events: RunEvent[]): void {
     const engine = this.engine;
     if (!engine) return;
+    // Any further action ends the sale-undo window.
+    if (this.saleUndo) {
+      this.saleUndo.dismiss();
+      this.saleUndo = null;
+    }
     if (!this.tutorial?.sandbox) {
       const upd = applyRunEvents(this.meta, engine.state, events, Date.now());
       if (upd.achievements.length || upd.unlocks.length) {
@@ -1280,6 +1315,8 @@ export class GameController {
   /** Just-in-time tip, once per id, at most one per contract (GDD §13). */
   private maybeTip(id: string): void {
     if (!this.settings.tips || this.meta.tipsSeen.includes(id) || this.tipShownThisContract) return;
+    // Tips live in the HUD: under an open screen they would be invisible yet marked as seen.
+    if (this.ui.count > 0) return;
     this.tipShownThisContract = true;
     this.meta.tipsSeen.push(id);
     this.s.saves.saveMeta(this.meta);

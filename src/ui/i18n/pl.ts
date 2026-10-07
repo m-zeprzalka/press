@@ -406,6 +406,7 @@ export const PL: Record<string, string> = {
   'tip.drag_hint': 'Przeciągnij na formę',
 
   // Różne
+  'toast.sold': 'Matryca sprzedana',
   'toast.copied': 'Skopiowano do schowka',
   'toast.share_failed': 'Nie udało się udostępnić',
   'webview.outdated': 'Zaktualizuj Android System WebView, aby zagrać w PRESS.',

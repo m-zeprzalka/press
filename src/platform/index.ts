@@ -72,11 +72,16 @@ export function createPlatform(opts: { kv?: KeyValueStore } = {}): Platform {
             iap.refresh().catch(() => undefined);
           });
           lifecycle.onSessionStart((sessionIndex) => {
-            ads.start({ sessionIndex, noAds: iap.entitled }).catch(() => undefined);
+            // A purchase that completed while the app was closed must win before any UMP/AdMob
+            // work: give the store a short head start (cached entitlement otherwise).
+            const fresh = Promise.race([
+              iap.refresh().catch(() => undefined),
+              new Promise((r) => setTimeout(r, 2500)),
+            ]);
+            void fresh.then(() => ads.start({ sessionIndex, noAds: iap.entitled }).catch(() => undefined));
           });
           await back.start();
           const sessionIndex = await lifecycle.start();
-          iap.refresh().catch(() => undefined);
           return { sessionIndex };
         })();
       }

@@ -84,9 +84,34 @@ let toastTimer = 0;
 export function toast(text: string, ms = 2200): void {
   const host = document.getElementById('toast');
   if (!host) return;
+  host.classList.remove('top');
   host.replaceChildren(h('div', { class: 'toast', role: 'status' }, text));
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => host.replaceChildren(), ms);
+}
+
+/**
+ * Toast with one action (e.g. Undo), shown near the top — away from the tray, where a stray
+ * tap during the next drag could hit it. Returns a function that dismisses it early.
+ */
+export function toastAction(text: string, action: string, onAction: () => void, ms = 5000): () => void {
+  const host = document.getElementById('toast');
+  if (!host) return () => undefined;
+  const dismiss = () => {
+    window.clearTimeout(toastTimer);
+    if (host.contains(box)) host.replaceChildren();
+  };
+  const btn = h('button', { class: 'toast-action', type: 'button' }, action);
+  btn.addEventListener('click', () => {
+    dismiss();
+    onAction();
+  });
+  const box = h('div', { class: 'toast with-action', role: 'status' }, h('span', null, text), btn);
+  host.classList.add('top');
+  host.replaceChildren(box);
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(dismiss, ms);
+  return dismiss;
 }
 
 export function announce(text: string): void {

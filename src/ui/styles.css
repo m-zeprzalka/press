@@ -428,6 +428,30 @@ body {
   pointer-events: none;
   z-index: 50;
 }
+#toast.top {
+  bottom: auto;
+  top: calc(var(--sa-top) + 64px);
+}
+#toast .toast.with-action {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 16px;
+}
+#toast .toast-action {
+  appearance: none;
+  border: 2px solid var(--paper);
+  background: var(--ink-yellow);
+  color: var(--ink);
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 #toast .toast {
   background: var(--ink);
   color: var(--paper);
