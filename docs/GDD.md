@@ -56,7 +56,7 @@ Poliomina 1–9 pól, bez obracania, jeden kolor na klocek. 37 kształtów (orie
 - **3 stałe sloty** — klocki nie przesuwają się po ułożeniu sąsiadów. Nowa taca dopiero po ułożeniu wszystkich.
 - Mniej niż 3 arkusze → tyle klocków, ile arkuszy; pusty slot pokazuje przekreślony arkusz. „Wąska kaszta" → slot 3 z ikoną blokady.
 - **Jeden rozmiar podglądu dla wszystkich klocków:** `trayCell = min(18 dp, slotInnerW/5, slotInnerH/5)`, więc względne rozmiary są porównywalne (I5 mieści się w slocie).
-- **Schowek (matryca Kaszta):** osobny slot 64 dp z lewej strony tacy. Odłożenie: upuść klocek na schowek (hit-test po pozycji palca ±16 dp). Zajęty schowek → zamiana z wolnym slotem tacy. Odłożenie nie kosztuje arkusza; max 1 odłożenie na ułożenie; położenie ze schowka kosztuje 1 arkusz. Nowa taca przychodzi, gdy sloty tacy są puste (niezależnie od schowka). Schowek przetrwa zlecenia i dodruk. Sprawdzenie zacięcia uwzględnia klocek ze schowka.
+- **Schowek (matryca Kaszta):** osobny slot 64 dp z lewej strony tacy. Odłożenie: upuść klocek na schowek (hit-test po pozycji palca ±16 dp). Zajęty schowek → zamiana z wolnym slotem tacy. Odłożenie nie kosztuje arkusza; max 1 odłożenie na ułożenie; położenie ze schowka kosztuje 1 arkusz. Nowa taca przychodzi, gdy sloty tacy są puste (niezależnie od schowka). Schowek przetrwa zlecenia i dodruk. Sprawdzenie zacięcia uwzględnia klocek ze schowka **i ucieczkę przez schowek**: gdy na tacy został jeden klocek, który nigdzie nie pasuje, a schowek jest pusty i odłożenie dozwolone, to nie jest zacięcie — odłożenie go daje nową (układalną) tacę; gra pokazuje wtedy podpowiedź „Nic nie pasuje — upuść ostatni klocek na Kasztę” (D26).
 
 ### 3.4 Sterowanie
 **Przeciąganie (domyślne):**
@@ -156,7 +156,7 @@ Brak arkuszy, nakład niewyrobiony, w stojaku jest matryca o wartości sprzedaż
 | `wet_ink` | Mokra farba / Wet Ink | SERIA nie działa | 3 | 0,80 |
 | `out_of_ink` | Brak farby / Out of Ink | **najcięższy kolor gracza** (remis: seed) wychodzi jako ślepy tłok; pokazany na karcie edycji | 3 | 0,85 |
 | `leftover` | Zalegający skład / Leftover Type | 8/10/12 pojedynczych pól ołowiu (bez sąsiadów, ≤ 2 na linię) | 3 | 0,90 |
-| `failure` | Awaria matrycy / Plate Failure | jedna matryca wylosowana na starcie zlecenia (waga: legendarna 3, rzadka 2, zwykła 1) nie działa; przestawianie tego nie zmienia; sprzedaż nie przenosi awarii | 3 | 0,90 |
+| `failure` | Awaria matrycy / Plate Failure | jedna matryca wylosowana na starcie zlecenia (waga: legendarna 3, rzadka 2, zwykła 1) nie działa; losowanie po kolejności nabycia (nie po stojaku), więc przestawianie przed startem zlecenia nie wpływa na wybór (D27); sprzedaż nie przenosi awarii | 3 | 0,90 |
 | `short_tray` | Wąska kaszta / Short Tray | taca 2 klocki | 3 | 0,90 |
 | `rows_only` | Prasa pozioma / Rows Only | drukują się tylko rzędy | 5 | 0,75 |
 
@@ -327,7 +327,7 @@ Przycisk z ikoną ▶ i nagrodą („▶ Reklama → Dodruk (+8 arkuszy)") obok 
 Przy każdym zimnym starcie i powrocie na pierwszy plan: `restorePurchases()` → `getPurchases({ productType: 'inapp' })`. Uprawnienie = zakup `press_no_ads` w stanie `purchaseState === '1'` (opłacony). Oczekujący (`'2'`) → „Płatność w toku — odblokujemy po potwierdzeniu", nic nie przyznajemy. Uprawnienie buforowane lokalnie (offline); cofane tylko po **udanym** zapytaniu bez produktu (zwrot). Cena z `getProducts()` (lokalizowana). `ITEM_ALREADY_OWNED` = przywrócenie; anulowanie użytkownika — cicho. „Przywróć zakup" na ekranie i w Ustawieniach. Reduktor uprawnień ma testy jednostkowe. Upsell: miękka karta na ekranie Wyniku po 3. interstitialu i link na ekranie Dodruku (≤ 1×/sesja). PWA: zakup ukryty.
 
 ### 11.6 ID reklam i konfiguracja
-Debug/e2e/PWA zawsze **testowe ID Google**. Release bierze ID z sekretów CI (`VITE_ADMOB_REWARDED_ID`, `VITE_ADMOB_INTERSTITIAL_ID`, `ADMOB_APP_ID` → `manifestPlaceholders`). Strażnik CI: release nie może zawierać `ca-app-pub-3940256099942544`. `app-ads.txt` w katalogu głównym domeny dewelopera. AdMob Blocking controls: hazard, randki, treści seksualne, alkohol, „szybkie bogacenie się".
+Debug/e2e/PWA zawsze **testowe ID Google**; w przeglądarce/PWA AdMob nie istnieje, więc reklamy są symulowane nakładką „Reklama testowa / Test ad” z tymi samymi regułami (D29). ID jednostek są wybierane przez bezpośrednie porównanie `import.meta.env.VITE_ADS_MODE`, więc bundle produkcyjny fizycznie nie zawiera testowych ID (D30). Release bierze ID z sekretów CI (`VITE_ADMOB_REWARDED_ID`, `VITE_ADMOB_INTERSTITIAL_ID`, `ADMOB_APP_ID` → `manifestPlaceholders`). Strażnik CI: release nie może zawierać `ca-app-pub-3940256099942544`. `app-ads.txt` w katalogu głównym domeny dewelopera. AdMob Blocking controls: hazard, randki, treści seksualne, alkohol, „szybkie bogacenie się".
 
 ### 11.7 Deklaracje Play Console (szczegóły w RELEASE.md)
 Ads: Tak · Advertising ID: Tak · Data safety wg ujawnienia GMA SDK (lokalizacja przybliżona, interakcje, diagnostyka, identyfikatory urządzenia; cele: reklama, analityka, bezpieczeństwo; szyfrowanie w tranzycie) · zapisy gry tylko na urządzeniu (nie zbierane) · Target audience 18+ · IARC. Analityka/Remote Config: **nie w wersji 1.0** (abstrakcja z pustym dostawcą; rekomendacja w RELEASE.md).
@@ -373,7 +373,7 @@ Pierwsze uruchomienie, **3 kroki, nauka przez granie**, w piaskownicy (nie dotyk
 1. **Ułóż i drukuj:** prawie pełny rząd, 1 klocek; akceptowane tylko docelowe ułożenie (inne wracają); ręka (lub statyczna strzałka przy „Ogranicz ruch") powtarza się po 2 s bezczynności.
 2. **Dwie linie naraz:** klocek domyka rząd i kolumnę; licznik ODBITKI × MNOŻNIK z podpisami; SERIA rośnie o 2.
 3. **Pierwsze zlecenie:** prawdziwe zlecenie 1 z maks. 2 dymkami (nakład + arkusze na starcie; seria przy pierwszym drugim druku) i podpowiedzią na ofercie.
-Opcja „Znam gry tego typu — pomiń" (pomija 1–2, zostawia 3). Powtórzenie z Ustawień.
+Opcja „Znam gry tego typu — pomiń" (pomija 1–2, zostawia 3). Powtórzenie z Ustawień. Samouczek jest zapisany jako ukończony w chwili startu prawdziwego runu (krok 3): po zamknięciu aplikacji w trakcie pierwszego zlecenia gracz widzi „Wznów run”, a nie ponowny samouczek (D28).
 
 **Wskazówki w porę** (1 linia ≤ 60 zn. EN / ≤ 75 PL, nieblokujące, maks. 1 na zlecenie, zapamiętane): pierwsza matryca („Dotknij matrycy — szczegóły"), druga („Kolejność ma znaczenie — przeciągnij"), pierwszy pełny stojak, pierwsza zapowiedź zlecenia specjalnego, pierwsza wyschnięta kropla serii, pierwszy raz ≤ 3 arkusze bez nakładu (sprzedaż), pierwsza przegrana (dodruk). Ustawienia: „Wskazówki: wł./wył.", „Zresetuj wskazówki".
 
@@ -534,3 +534,9 @@ Brak współdzielonego, zmiennego RNG runu. Bez `Math.pow`/`log10` w `src/core` 
 | D23 | Zapis A/B z CRC i seq; osobne sloty run/daily | (v1.1) brak utraty runu |
 | D24 | Tryb pełnoekranowy (immersive sticky) domyślnie, wyłączalny w Ustawieniach | wymóg „pełny ekran"; opcja dla osób chcących widzieć zegar/baterię |
 | D25 | Brak Firebase w 1.0; warstwa analityki z pustym dostawcą | wymaga konta/plików właściciela i zmian w Data safety |
+| D26 | Ucieczka przez Kasztę nie jest zacięciem | silnik ogłaszał koniec runu, choć odłożenie ostatniego klocka dawało nową tacę (wykryte przez symulator) |
+| D27 | Awaria losowana po kolejności nabycia matryc | przestawianie stojaka w ofercie pozwalało sterować, która matryca padnie |
+| D28 | Samouczek ukończony od startu prawdziwego runu | e2e wykrył, że restart w trakcie 1. zlecenia nadpisywał zapisany run piaskownicą |
+| D29 | PWA: symulowane reklamy z etykietą „Test ad”, te same reguły | jedna ścieżka kodu i testów e2e; PWA nie jest monetyzowana |
+| D30 | ID reklam wybierane statycznie przez `import.meta.env` | odczyt przez alias zostawiał testowe ID w bundlu produkcyjnym — strażnik CI blokowałby każde wydanie |
+| D31 | Debug APK w CI niezależny od lint/testów; AAB wymaga checks + e2e | instalowalny build i sygnał z Gradle po każdym pushu, brama jakości przed wydaniem |
