@@ -118,7 +118,7 @@ export async function playToResults(
       if (plates < 5 && (await card.count()) > 0) {
         await card.click(); // selects the card…
         await tap(page, /^Take$/); // …and confirms
-      } else await tap(page, /^Skip/);
+      } else await page.getByRole('button', { name: /^Skip · / }).click();
       await expect.poll(() => screen(page)).not.toBe('offer');
       continue;
     }

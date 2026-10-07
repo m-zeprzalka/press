@@ -74,10 +74,11 @@ test('an ad reroll is offered after the free one and grants a fresh offer', asyn
   await expect.poll(() => screen(page)).toBe('offer');
   const names = () => page.locator('#ui .plate-card').allInnerTexts();
   const first = await names();
-  await tap(page, /Reroll · free/i);
+  await page.waitForTimeout(650);
+  await page.getByRole('button', { name: 'Reroll · free' }).click();
   await expect.poll(names).not.toEqual(first);
   const second = await names();
-  const adReroll = page.locator('#ui button', { hasText: 'Reroll' }).filter({ hasNotText: /free/i });
+  const adReroll = page.getByRole('button', { name: 'Reroll', exact: true });
   await expect(adReroll).toBeVisible();
   await page.waitForTimeout(650);
   await adReroll.click();

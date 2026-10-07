@@ -117,7 +117,11 @@ export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
         h('div', { class: 'tip', style: 'position:static;transform:none;margin:0 auto' }, t('tut.offer')),
       );
     if (!replaceMode && (v.bonus4 || v.bonusRare)) {
-      const badges = h('div', { class: 'offer-badges' });
+      const badges = h(
+        'div',
+        { class: 'offer-badges' },
+        h('span', { class: 'display muted badge-head' }, t('offer.early')),
+      );
       if (v.bonus4) badges.append(h('span', { class: 'badge' }, t('offer.bonus4')));
       if (v.bonusRare)
         badges.append(
@@ -191,9 +195,11 @@ export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
     const rerollRow = h('div', { class: 'row' });
     if (v.canFreeReroll) {
       rerollRow.append(
-        button(t('offer.reroll_free'), () => act.reroll('free'), {
+        button(t('offer.reroll'), () => act.reroll('free'), {
           icon: uiIcon('reroll'),
           variant: 'secondary',
+          sub: t('offer.free'),
+          label: t('offer.reroll_free'),
         }),
       );
     } else if (!v.dailyMode && v.canAdReroll && (v.adAvailable || v.buyer)) {
@@ -208,7 +214,11 @@ export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
       rerollRow.append(b);
     }
     rerollRow.append(
-      button(t('offer.skip', { n: BALANCE.skipSheets }), () => act.skip(), { icon: uiIcon('skip') }),
+      button(t('offer.skip_short'), () => act.skip(), {
+        icon: uiIcon('skip'),
+        sub: t('offer.skip_sub', { n: BALANCE.skipSheets }),
+        label: t('offer.skip', { n: BALANCE.skipSheets }),
+      }),
     );
     col.append(rerollRow);
     if (!v.dailyMode) {
@@ -228,9 +238,9 @@ export function buildOffer(v: OfferView, act: OfferActions): HTMLElement {
         p
           ? h(
               'div',
-              { class: 'mini-plate' },
+              { class: 'mini-plate', title: plateName(p.id) },
               svgIcon(plateIcon(p.id), ''),
-              h('span', null, plateName(p.id).slice(0, 10)),
+              h('span', null, plateName(p.id)),
             )
           : h('div', { class: 'mini-plate empty' }),
       );

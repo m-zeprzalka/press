@@ -56,15 +56,20 @@ export interface ButtonOpts {
   /** Ignore taps for this long after creation (accidental-tap guard for ad buttons, GDD §11.4). */
   armDelayMs?: number;
   label?: string;
+  /** Smaller second line (e.g. "free", "+3 sheets"); the aria-label then reads "text · sub". */
+  sub?: string;
 }
 
 export function button(text: string, onClick: () => void, opts: ButtonOpts = {}): HTMLButtonElement {
   const cls = ['btn', opts.variant ?? '', opts.small ? 'small' : '', opts.wide ? 'wide' : '']
     .filter(Boolean)
     .join(' ');
-  const b = h('button', { class: cls, type: 'button', 'aria-label': opts.label ?? undefined });
+  const label = opts.label ?? (opts.sub ? `${text} · ${opts.sub}` : undefined);
+  const b = h('button', { class: cls, type: 'button', 'aria-label': label });
   if (opts.icon) b.append(svgIcon(opts.icon));
-  b.append(h('span', null, text));
+  if (opts.sub)
+    b.append(h('span', { class: 'lbl' }, h('span', null, text), h('span', { class: 'sub' }, opts.sub)));
+  else b.append(h('span', null, text));
   if (opts.disabled) b.disabled = true;
   const armedAt = performance.now() + (opts.armDelayMs ?? 0);
   b.addEventListener('click', (e) => {

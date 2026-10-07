@@ -194,6 +194,21 @@ body {
 .btn.wide {
   width: 100%;
 }
+.btn .lbl {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.btn .sub {
+  white-space: nowrap;
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-size: 0.78em;
+  opacity: 0.85;
+}
 .btn .icon {
   width: 26px;
   height: 26px;
@@ -314,6 +329,9 @@ body {
 }
 .row > .btn {
   flex: 1;
+  min-width: 0;
+  padding-inline: 12px;
+  gap: 8px;
 }
 
 @keyframes screen-in {
@@ -531,8 +549,12 @@ body {
 .offer-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px 8px;
   justify-content: center;
+  align-items: center;
+}
+.offer-badges .badge-head {
+  font-size: 0.8rem;
 }
 .badge {
   font-family: var(--display);
@@ -559,7 +581,7 @@ body {
 }
 .mini-rack {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 .mini-plate {
@@ -579,6 +601,13 @@ body {
 .mini-plate svg {
   width: 36px;
   height: 36px;
+}
+.mini-plate span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
 }
 .mini-plate.empty {
   border-style: dashed;
