@@ -15,6 +15,8 @@ export function ipow(base: number, k: number): number {
 /** Rounds to two significant digits (values ≥ 100), or to tens below that (min 10). */
 export function niceRound(v: number): number {
   if (!(v > 0)) return 10;
+  // Guard: the magnitude loop below never terminates for +Infinity (Infinity >= Infinity).
+  if (v === Infinity) return v;
   if (v < 100) return Math.max(10, Math.round(v / 10) * 10);
   let mag = 1;
   while (v >= mag * 100) mag *= 10;

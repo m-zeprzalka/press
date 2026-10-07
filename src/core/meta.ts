@@ -263,21 +263,57 @@ function recordDaily(meta: MetaState, run: Readonly<RunState>, out: MetaUpdate, 
   }
 }
 
-/** Normalises persisted meta (missing fields from older versions, unknown plates dropped). */
+type Obj = Record<string, unknown>;
+
+const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Normalises persisted meta: missing fields from older versions get defaults, values of the
+ * wrong type are reset, unknown plates / achievements / malformed daily records are dropped.
+ * Never aliases `raw`.
+ */
 export function migrateMeta(raw: unknown): MetaState {
-  const base = newMeta();
-  if (!raw || typeof raw !== 'object') return base;
-  const r = raw as Partial<MetaState>;
-  const stats = { ...base.stats, ...(r.stats ?? {}) };
-  stats.picks = { ...(r.stats?.picks ?? {}) };
-  return {
-    v: META_VERSION,
-    stats,
-    achievements: { ...(r.achievements ?? {}) },
-    unlocked: Array.isArray(r.unlocked) ? r.unlocked.filter(isMatrixId) : [],
-    daily: { ...(r.daily ?? {}) },
-    tutorialDone: Boolean(r.tutorialDone),
-    freeContinueUsed: Boolean(r.freeContinueUsed),
-    tipsSeen: Array.isArray(r.tipsSeen) ? r.tipsSeen.filter((t) => typeof t === 'string') : [],
-  };
+  const meta = newMeta();
+  if (!isObj(raw)) return meta;
+
+  const rs = isObj(raw.stats) ? raw.stats : {};
+  const stats = meta.stats as unknown as Obj;
+  for (const [k, def] of Object.entries(stats)) if (typeof def === 'number' && isCount(rs[k])) stats[k] = rs[k];
+  if (typeof rs.lastDailyDate === 'string' && DATE_RE.test(rs.lastDailyDate)) meta.stats.lastDailyDate = rs.lastDailyDate;
+  if (isObj(rs.picks)) {
+    for (const [id, n] of Object.entries(rs.picks)) if (isMatrixId(id) && isCount(n)) meta.stats.picks[id] = n;
+  }
+
+  const ach = isObj(raw.achievements) ? raw.achievements : {};
+  for (const id of ACHIEVEMENT_IDS) {
+    const at = ach[id];
+    if (typeof at === 'number' && Number.isFinite(at)) meta.achievements[id] = at;
+  }
+
+  const unlocked = new Set<MatrixId>(Array.isArray(raw.unlocked) ? raw.unlocked.filter(isMatrixId) : []);
+  // An earned achievement keeps its plate: grant() never awards it a second time.
+  for (const id of ACHIEVEMENT_IDS) {
+    const plate = ACHIEVEMENT_UNLOCKS[id];
+    if (plate && meta.achievements[id] !== undefined) unlocked.add(plate);
+  }
+  meta.unlocked = [...unlocked].filter((id) => !STARTER_MATRICES.includes(id));
+
+  if (isObj(raw.daily)) {
+    for (const [date, rec] of Object.entries(raw.daily)) {
+      if (!DATE_RE.test(date) || !isObj(rec)) continue;
+      meta.daily[date] = {
+        best: isCount(rec.best) ? rec.best : 0,
+        contracts: isCount(rec.contracts) ? rec.contracts : 0,
+        attempts: isCount(rec.attempts) ? rec.attempts : 0,
+        grid: typeof rec.grid === 'string' ? rec.grid : '',
+      };
+    }
+  }
+
+  meta.tutorialDone = raw.tutorialDone === true;
+  meta.freeContinueUsed = raw.freeContinueUsed === true;
+  meta.tipsSeen = Array.isArray(raw.tipsSeen) ? raw.tipsSeen.filter((t): t is string => typeof t === 'string') : [];
+  return meta;
 }

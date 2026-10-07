@@ -185,6 +185,8 @@ export function isSolvable(
   budgetNodes: number = SOLVE_BUDGET,
 ): boolean {
   if (shapes.length === 0) return true;
+  // `remaining` is a bit set counted with popcount8 and packed into the memo key below.
+  if (shapes.length > 8) throw new RangeError('isSolvable: at most 8 shapes');
   const budget = { left: budgetNodes };
   // Larger pieces first makes the disjoint search fail/succeed faster.
   const bySize = [...shapes].sort((a, b) => b.size - a.size);
@@ -206,7 +208,9 @@ export function isSolvable(
     const left = popcount8(remaining);
     if (left === 1) return fits(board, shapes[31 - Math.clz32(remaining)] as Shape);
     const hi = half(board, 0);
-    const lo = half(board, 4) * 8 + remaining;
+    // Rows 4-7 above the remaining-set bits: (fullSet + 1) = 2^n leaves room for every subset
+    // (a fixed ×8 only fits 3 pieces; with 4+ distinct states collided and solvable trays were rejected).
+    const lo = half(board, 4) * (fullSet + 1) + remaining;
     const seen = failed.get(hi);
     if (seen?.has(lo)) return false;
 

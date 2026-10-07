@@ -152,7 +152,7 @@ export interface RunOptions {
 
 export type RunEvent =
   | { type: 'contract_started'; spec: ContractSpec; sheets: number; disabledUid: number | null }
-  | { type: 'dealt'; pieces: TrayPiece[]; fallback: boolean }
+  | { type: 'dealt'; pieces: TrayPiece[]; fallback: boolean; attempts: number; nodes: number }
   | { type: 'placed'; slot: SlotRef; piece: TrayPiece; x: number; y: number; cells: number[] }
   | {
       type: 'printed';
@@ -281,8 +281,12 @@ export class RunEngine {
   }
 
   inkWeights(): number[] {
+    return this.inkWeightsOf(this.enabledPlates());
+  }
+
+  private inkWeightsOf(plates: readonly MatrixInstance[]): number[] {
     const w = new Array<number>(INK_COUNT).fill(1);
-    for (const p of this.enabledPlates()) {
+    for (const p of plates) {
       const aff = matrixDef(p.id).inkAffinity;
       if (aff !== undefined) w[aff] = (w[aff] as number) + BALANCE.colorAffinityWeight;
     }
@@ -331,6 +335,7 @@ export class RunEngine {
   validPositions(slot: SlotRef): Array<[number, number]> {
     const piece = this.pieceAt(slot);
     if (!piece || this.s.phase !== 'playing') return [];
+    if (slot === 'reserve' && this.reserveSlots() === 0) return [];
     const shape = shapeById(piece.shape);
     const out: Array<[number, number]> = [];
     for (let y = 0; y <= BOARD_SIZE - shape.h; y++)
@@ -344,6 +349,11 @@ export class RunEngine {
     const rows = occupancy(this.s.cells);
     for (const p of this.s.tray) if (p && fits(rows, shapeById(p.shape))) return true;
     if (this.s.reserve && this.reserveSlots() > 0 && fits(rows, shapeById(this.s.reserve.shape))) return true;
+    // Type Case escape: stashing the last tray piece into an empty case deals a fresh (fair) tray.
+    const trayLeft = this.s.tray.filter((p) => p !== null).length;
+    if (trayLeft === 1 && this.s.reserve === null && this.s.contract.sheetsLeft > 0 && this.canStash(this.s.tray.findIndex((p) => p !== null))) {
+      return true;
+    }
     return false;
   }
 
@@ -357,6 +367,8 @@ export class RunEngine {
     if (this.s.phase !== 'offer' || !this.s.offer) return false;
     if (kind === 'free') return this.s.freeRerolls > 0;
     if (this.s.mode === 'daily') return false;
+    // GDD §9.1: ad rerolls come only after the free one is used.
+    if (this.s.freeRerolls > 0) return false;
     return (
       this.s.adRerollsUsed < BALANCE.adRerollsPerRun && this.s.offer.adRerollsHere < BALANCE.adRerollsPerOffer
     );
@@ -377,7 +389,9 @@ export class RunEngine {
     const key = String(edition);
     let mods = this.s.editionModifiers[key];
     if (!mods) {
-      mods = editionModifiers(this.s.seed, edition, this.inkWeights());
+      // The whole rack counts: a plate failed in the previous special job is not failed at
+      // the edition's start (and `contract` does not exist yet while the run is created).
+      mods = editionModifiers(this.s.seed, edition, this.inkWeightsOf(this.s.plates));
       this.s.editionModifiers[key] = mods;
     }
     return mods;
@@ -386,6 +400,11 @@ export class RunEngine {
   /** Modifiers of the current edition's special job (for the HUD preview). */
   upcomingSpecial(): Modifier[] {
     return this.ensureEditionModifiers(editionOf(this.s.contractIndex));
+  }
+
+  /** Reveals (and fixes) the special-job modifiers of a given edition. */
+  specialFor(edition: number): Modifier[] {
+    return this.ensureEditionModifiers(edition);
   }
 
   private startContract(index: number): RunEvent[] {
@@ -405,8 +424,10 @@ export class RunEngine {
     let disabledUid: number | null = null;
     if (hasModifier(spec, 'failure') && s.plates.length > 0) {
       const rng = Rng.derive(s.seed, 'failure', index);
-      const weights = s.plates.map((p) => BALANCE.failureWeights[matrixDef(p.id).rarity]);
-      disabledUid = (s.plates[rng.weightedIndex(weights)] as MatrixInstance).uid;
+      // Draw over acquisition order, not rack order, so rearranging plates cannot steer the failure.
+      const order = [...s.plates].sort((a, b) => a.uid - b.uid);
+      const weights = order.map((p) => BALANCE.failureWeights[matrixDef(p.id).rarity]);
+      disabledUid = (order[rng.weightedIndex(weights)] as MatrixInstance).uid;
     }
 
     s.contract = {
@@ -462,7 +483,7 @@ export class RunEngine {
     const pieces: TrayPiece[] = res.pieces.map((p) => ({ uid: s.nextUid++, shape: p.shape, ink: p.ink }));
     s.tray = [null, null, null];
     pieces.forEach((p, i) => (s.tray[i] = p));
-    return [{ type: 'dealt', pieces, fallback: res.fallback }];
+    return [{ type: 'dealt', pieces, fallback: res.fallback, attempts: res.attempts, nodes: res.nodes }];
   }
 
   // ------------------------------------------------------------------ actions
@@ -592,9 +613,7 @@ export class RunEngine {
     s.totals.contractsWon++;
     s.carryStreak = c.streak;
     for (const inst of this.enabledPlates()) matrixDef(inst.id).afterContract?.(inst.state);
-    const share = c.sheetsUsed / c.spec.sheets;
-    const cards = share <= BALANCE.earlyShare4Cards ? 4 : 3;
-    const guaranteeRare = share <= BALANCE.earlyShareRare;
+    const { cards, guaranteeRare } = this.earlyBonus();
     const events: RunEvent[] = [
       {
         type: 'contract_won',
@@ -617,6 +636,13 @@ export class RunEngine {
     s.phase = 'offer';
     events.push({ type: 'offer', offer: clone(s.offer) });
     return events;
+  }
+
+  /** Early-finish bonus of the current contract (GDD §6.3): share of base sheets used. */
+  private earlyBonus(): { cards: number; guaranteeRare: boolean } {
+    const c = this.s.contract;
+    const share = c.sheetsUsed / c.spec.sheets;
+    return { cards: share <= BALANCE.earlyShare4Cards ? 4 : 3, guaranteeRare: share <= BALANCE.earlyShareRare };
   }
 
   private lose(reason: LossReason): RunEvent[] {
@@ -643,10 +669,12 @@ export class RunEngine {
     const order: Rarity[] = ['common', 'rare', 'legendary'];
     const cards: MatrixId[] = [];
     let hasInk = false;
+    // Ink plates are the colour plates (Ink Well is not one, despite its id).
+    const isInkPlate = (id: MatrixId) => matrixDef(id).inkAffinity !== undefined;
     const take = (r: Rarity): MatrixId | null => {
       // Fall back to lower rarities when a pool is exhausted.
       for (let k = order.indexOf(r); k >= 0; k--) {
-        const list = byRarity[order[k] as Rarity].filter((id) => !cards.includes(id) && !(hasInk && id.startsWith('ink_')));
+        const list = byRarity[order[k] as Rarity].filter((id) => !cards.includes(id) && !(hasInk && isInkPlate(id)));
         if (list.length > 0) return rng.pick(list);
       }
       return null;
@@ -661,7 +689,7 @@ export class RunEngine {
       }
       const id = take(rarity);
       if (!id) break;
-      if (id.startsWith('ink_')) hasInk = true;
+      if (isInkPlate(id)) hasInk = true;
       cards.push(id);
     }
     return cards;
@@ -672,13 +700,14 @@ export class RunEngine {
     if (s.phase !== 'offer' || !s.offer) throw new RunError('No offer');
     const id = s.offer.cards[card];
     if (!id) throw new RunError('Bad card');
+    const full = s.plates.length >= BALANCE.slots;
+    const at = full ? s.plates.findIndex((p) => p.uid === replaceUid) : -1;
+    if (full && at < 0) throw new RunError('Rack full: choose a plate to replace');
     const events: RunEvent[] = [];
     const inst = createInstance(id, s.nextUid++);
     let replaced: MatrixInstance | null = null;
     let slot: number;
-    if (s.plates.length >= BALANCE.slots) {
-      const at = s.plates.findIndex((p) => p.uid === replaceUid);
-      if (at < 0) throw new RunError('Rack full: choose a plate to replace');
+    if (full) {
       replaced = s.plates[at] as MatrixInstance;
       const sheets = sellValue(replaced.id);
       s.pendingSheets += sheets;
@@ -847,7 +876,9 @@ export class RunEngine {
     const s = this.s;
     if (s.phase !== 'victory') throw new RunError('Not victorious');
     s.endless = true;
-    s.offer = { index: s.contractIndex, cards: [], cardCount: 3, guaranteeRare: false, rerolls: 0, adRerollsHere: 0 };
+    // The offer after job 24 carries that job's early-finish bonus like any other.
+    const { cards, guaranteeRare } = this.earlyBonus();
+    s.offer = { index: s.contractIndex, cards: [], cardCount: cards, guaranteeRare, rerolls: 0, adRerollsHere: 0 };
     s.offer.cards = this.drawOffer(s.offer);
     s.phase = 'offer';
     return [{ type: 'offer', offer: clone(s.offer) }];
@@ -858,7 +889,8 @@ export class RunEngine {
     const s = this.s;
     if (s.phase === 'over') return [];
     if (s.phase === 'playing' || s.phase === 'last_chance' || s.phase === 'lost') this.record(false);
+    const won = s.endless || s.phase === 'victory';
     s.phase = 'over';
-    return [{ type: 'run_over', won: s.endless }];
+    return [{ type: 'run_over', won }];
   }
 }

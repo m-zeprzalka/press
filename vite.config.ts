@@ -41,6 +41,9 @@ export default defineConfig(({ mode }) => ({
   test: {
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     environment: 'node',
+    // Property tests brute-force thousands of boards; coverage instrumentation on a shared CI
+    // runner can be 3-4x slower than a laptop, so the 5 s default is too tight.
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: ['src/core/**/*.ts'],

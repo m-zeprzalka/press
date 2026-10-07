@@ -343,7 +343,7 @@ const DEFS: MatrixDef[] = [
     id: 'registration',
     rarity: 'rare',
     tags: ['rainbow'],
-    starter: true,
+    starter: false,
     print: (api, p) => {
       if (p.inks.length > 0) api.mult(MX.registrationPerInk * p.inks.length);
     },
@@ -434,7 +434,7 @@ const DEFS: MatrixDef[] = [
     id: 'ink_well',
     rarity: 'rare',
     tags: ['color', 'mono', 'scaling'],
-    starter: false,
+    starter: true,
     initState: () => ({ mult: 0 }),
     print: (api, _p, st) => {
       if ((st.mult ?? 0) > 0) api.mult(st.mult ?? 0);
