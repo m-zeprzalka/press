@@ -37,7 +37,7 @@ export function occupancy(cells: Cells): Rows {
   for (let i = 0; i < cells.length; i++) {
     if ((cells[i] as number) !== EMPTY) {
       const y = (i / BOARD_SIZE) | 0;
-      rows[y] = (rows[y] as number) | (1 << i % BOARD_SIZE);
+      rows[y] = (rows[y] as number) | (1 << (i % BOARD_SIZE));
     }
   }
   return rows;
@@ -49,7 +49,7 @@ export function emptyJamRows(cells: Cells): Rows {
   for (let i = 0; i < cells.length; i++) {
     if (cells[i] === JAM) {
       const y = (i / BOARD_SIZE) | 0;
-      rows[y] = (rows[y] as number) | (1 << i % BOARD_SIZE);
+      rows[y] = (rows[y] as number) | (1 << (i % BOARD_SIZE));
     }
   }
   return rows;
@@ -68,7 +68,7 @@ export function blockedLines(cells: Cells): BlockedLines {
   for (let i = 0; i < cells.length; i++) {
     if (cells[i] === JAM) {
       blockedRows |= 1 << ((i / BOARD_SIZE) | 0);
-      blockedCols |= 1 << i % BOARD_SIZE;
+      blockedCols |= 1 << (i % BOARD_SIZE);
     }
   }
   return { blockedRows, blockedCols };

@@ -3,7 +3,17 @@
  */
 import { BALANCE } from './config/balance';
 import { BLIND, INK_COUNT, JAM, clearRulesFor, emptyJamRows, occupancy, type Cells } from './board';
-import { SOLVE_BUDGET, canPlace, cloneRows, fits, isSolvable, placeAndClear, positions, type ClearRules, type SolveStats } from './bitboard';
+import {
+  SOLVE_BUDGET,
+  canPlace,
+  cloneRows,
+  fits,
+  isSolvable,
+  placeAndClear,
+  positions,
+  type ClearRules,
+  type SolveStats,
+} from './bitboard';
 import { SHAPES, type Shape } from './pieces';
 import type { Rng } from './rng';
 
@@ -18,6 +28,8 @@ export interface DealContext {
   blindInk: number | null;
   bigFormat: boolean;
   rowsOnly: boolean;
+  /** Total solver node budget for this deal (GDD §4); defaults to DEAL_BUDGET. */
+  dealBudget?: number;
 }
 
 export interface DealtPiece {
@@ -79,12 +91,13 @@ export function dealTray(ctx: DealContext): DealResult {
   const never = neverFitting(ctx.cells);
   const pool = never.size > 0 ? SHAPES.filter((s) => !never.has(s.id)) : SHAPES;
   const stats: SolveStats = { nodes: 0 };
+  const dealBudget = ctx.dealBudget ?? DEAL_BUDGET;
 
   for (let attempt = 1; attempt <= BALANCE.dealRetries; attempt++) {
     const smallBias = attempt > BALANCE.dealRetriesBeforeSmallBias;
     const shapes: Shape[] = [];
     for (let i = 0; i < count; i++) shapes.push(drawShape(ctx.rng, pool, ctx.bigFormat, smallBias));
-    const left = DEAL_BUDGET - stats.nodes;
+    const left = dealBudget - stats.nodes;
     if (left <= 0) break;
     if (isSolvable(rows, shapes, rules, stats, Math.min(SOLVE_BUDGET, left))) {
       return {
@@ -103,14 +116,16 @@ export function dealTray(ctx: DealContext): DealResult {
     const fitting = pool.filter((s) => positions(sim, s).length > 0);
     // Prefer shapes allowed by the modifier; fall back to anything that fits, then to a dot.
     const allowed = fitting.filter((s) => shapeWeight(s, ctx.bigFormat, true) > 0);
-    const choice = allowed.length > 0 ? allowed : fitting.length > 0 ? fitting : SHAPES.filter((s) => s.size === 1);
+    const choice =
+      allowed.length > 0 ? allowed : fitting.length > 0 ? fitting : SHAPES.filter((s) => s.size === 1);
     const shape = drawShape(ctx.rng, choice, false, true);
     const spots = positions(sim, shape);
     if (spots.length > 0) {
       const p = ctx.rng.pick(spots);
       const x = p % 8;
       const y = (p / 8) | 0;
-      /* c8 ignore next */
+      // Defensive: `p` comes from positions(sim, shape), so canPlace is always true here.
+      /* c8 ignore else -- @preserve */
       if (canPlace(sim, shape, x, y)) placeAndClear(sim, shape, x, y, rules);
     }
     pieces.push({ shape: shape.id, ink: drawInk(ctx) });

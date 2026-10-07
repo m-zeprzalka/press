@@ -106,6 +106,8 @@ export interface PrintCtx {
   /** 0 for the first print of the contract. */
   printIndex: number;
   boardCleanAfter: boolean;
+  /** Cells with content (ink, blind emboss, lead) left on the forme after clearing; jams excluded. */
+  cellsAfter: number;
   /** Empty plate slots (capacity − owned). */
   emptySlots: number;
 }
@@ -295,7 +297,8 @@ const DEFS: MatrixDef[] = [
     starter: true,
     initState: () => ({ stored: 0 }),
     print: (api, _p, st) => {
-      if ((st.stored ?? 0) > 0) api.prints(st.stored ?? 0);
+      const stored = st.stored ?? 0;
+      if (stored > 0) api.prints(stored);
     },
     afterPrint: (_p, st) => {
       st.stored = 0;
@@ -368,7 +371,8 @@ const DEFS: MatrixDef[] = [
     starter: true,
     initState: () => ({ bonus: 0 }),
     line: (api, _l, st) => {
-      if ((st.bonus ?? 0) > 0) api.prints(st.bonus ?? 0);
+      const bonus = st.bonus ?? 0;
+      if (bonus > 0) api.prints(bonus);
     },
     afterPrint: (p, st) => {
       st.bonus = (st.bonus ?? 0) + MX.archiveStep * p.lineCount;
@@ -437,7 +441,8 @@ const DEFS: MatrixDef[] = [
     starter: true,
     initState: () => ({ mult: 0 }),
     print: (api, _p, st) => {
-      if ((st.mult ?? 0) > 0) api.mult(st.mult ?? 0);
+      const mult = st.mult ?? 0;
+      if (mult > 0) api.mult(mult);
     },
     afterPrint: (p, st) => {
       st.mult = (st.mult ?? 0) + MX.inkWellStep * p.monoLines;
@@ -479,7 +484,8 @@ const DEFS: MatrixDef[] = [
       }
     },
     print: (api, _p, _st, tmp) => {
-      if ((tmp.repeats ?? 0) > 0) api.xmult(ipow(MX.goldenX, tmp.repeats ?? 0));
+      const repeats = tmp.repeats ?? 0;
+      if (repeats > 0) api.xmult(ipow(MX.goldenX, repeats));
     },
     params: () => ({ n: Math.round(1 / MX.goldenChance), x: MX.goldenX }),
   },

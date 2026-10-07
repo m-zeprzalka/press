@@ -8,7 +8,19 @@
  */
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from './config/balance';
-import { BLIND, EMPTY, JAM, LEAD, findFullLines, idx, isInk, lineCells, newCells, type Cells, type FullLines } from './board';
+import {
+  BLIND,
+  EMPTY,
+  JAM,
+  LEAD,
+  findFullLines,
+  idx,
+  isInk,
+  lineCells,
+  newCells,
+  type Cells,
+  type FullLines,
+} from './board';
 import { ipow } from './math';
 import {
   MATRICES,
@@ -176,7 +188,16 @@ const CROSS_MIXED_LEAD = ['...p...l', ...CROSS_MIXED.slice(1)];
  * Rows 0,1 and columns 0,1: 4 lines, 4 intersections, every line has 5 inks,
  * edges = row 0 and col 0. Pink visits: row0 2, row1 1, col0 3, col1 2 = 8.
  */
-const FOUR_LINES = ['poytbpoy', 'oytbpoyt', 'pb......', 'yt......', 'bp......', 'to......', 'op......', 'py......'];
+const FOUR_LINES = [
+  'poytbpoy',
+  'oytbpoyt',
+  'pb......',
+  'yt......',
+  'bp......',
+  'to......',
+  'op......',
+  'py......',
+];
 /** Row 4 with exactly two inks / exactly three inks. */
 const ROW_2_INKS = [E, E, E, E, 'ppppbbbb', E, E, E];
 const ROW_3_INKS = [E, E, E, E, 'pppobbbb', E, E, E];
@@ -197,6 +218,8 @@ interface Fixture {
   total: number;
 }
 
+// One fixture per line keeps the hand-computed table scannable.
+// prettier-ignore
 const FIXTURES: Fixture[] = [
   // ---- base rules (§5.2–§5.4) ----
   // 8 ink cells × 10 = 80; M = 1 + 0 = 1.
@@ -403,7 +426,9 @@ describe('golden_type', () => {
       { t: 'cell', i: 0, ref: { kind: 'row', n: 0 }, again: true },
       { t: 'cell', i: 7, ref: { kind: 'row', n: 0 }, again: true },
     ]);
-    expect(r.events.filter((e) => e.t === 'x')).toEqual([{ t: 'x', v: ipow(1.1, 2), src: 0, M: ipow(1.1, 2) }]);
+    expect(r.events.filter((e) => e.t === 'x')).toEqual([
+      { t: 'x', v: ipow(1.1, 2), src: 0, M: ipow(1.1, 2) },
+    ]);
   });
 
   it('chance is strictly below 1/4', () => {
@@ -488,7 +513,14 @@ describe('golden_type', () => {
 
 describe('Mirror (§8.3)', () => {
   it('resolveSlot follows the chain and stops at disabled plates or the end', () => {
-    const slots = rack(['mirror', 'mirror', { id: 'journeyman', state: { mult: 5 } }, 'mirror', { id: 'proof', enabled: false }, 'mirror']);
+    const slots = rack([
+      'mirror',
+      'mirror',
+      { id: 'journeyman', state: { mult: 5 } },
+      'mirror',
+      { id: 'proof', enabled: false },
+      'mirror',
+    ]);
     const ids = slots.map((_, i) => resolveSlot(slots, i)?.def.id ?? null);
     expect(ids).toEqual(['journeyman', 'journeyman', 'journeyman', null, null, null]);
     // Mirror reads the neighbour's state object (never a copy it could grow).
@@ -509,23 +541,39 @@ describe('Mirror (§8.3)', () => {
   it('per-cell attribution: mirror of ink_pink', () => {
     const r = score(ROW0_MIXED, ['mirror', 'ink_pink'], { streak: 1 });
     expect(r.triggers).toEqual([4, 4]);
-    const pinkEvents = r.events.filter((e): e is Extract<ScoreEvent, { t: 'p' }> => e.t === 'p' && e.src === 0);
+    const pinkEvents = r.events.filter(
+      (e): e is Extract<ScoreEvent, { t: 'p' }> => e.t === 'p' && e.src === 0,
+    );
     expect(pinkEvents.map((e) => e.i)).toEqual([0, 1, 6, 7]);
   });
 
   it('rightmost or neighbour-disabled mirror records no triggers; disabled plates contribute nothing', () => {
     expect(score(ROW0_MIXED, ['proof', 'mirror'], { streak: 1 }).triggers).toEqual([1, 0]);
-    expect(score(ROW0_MIXED, ['mirror', { id: 'proof', enabled: false }], { streak: 1 }).triggers).toEqual([0, 0]);
-    const off = score(TWO_ROWS, [{ id: 'guillotine', enabled: false }, { id: 'ink_pink', enabled: false }, { id: 'gutenberg', enabled: false }], {
-      streak: 2,
-    });
+    expect(score(ROW0_MIXED, ['mirror', { id: 'proof', enabled: false }], { streak: 1 }).triggers).toEqual([
+      0, 0,
+    ]);
+    const off = score(
+      TWO_ROWS,
+      [
+        { id: 'guillotine', enabled: false },
+        { id: 'ink_pink', enabled: false },
+        { id: 'gutenberg', enabled: false },
+      ],
+      {
+        streak: 2,
+      },
+    );
     expect(off).toMatchObject({ prints: 160, mult: 3, total: 480, triggers: [0, 0, 0] });
   });
 
   it('does not grow or mutate the copied plate (scoring is pure)', () => {
-    const input = makeInput(ROW0_MIXED, ['mirror', { id: 'scrap', state: { stored: 60 } }, 'mirror', { id: 'archive', state: { bonus: 3 } }], {
-      streak: 1,
-    });
+    const input = makeInput(
+      ROW0_MIXED,
+      ['mirror', { id: 'scrap', state: { stored: 60 } }, 'mirror', { id: 'archive', state: { bonus: 3 } }],
+      {
+        streak: 1,
+      },
+    );
     const before = structuredClone(input.slots.map((s) => s.inst.state));
     for (const s of input.slots) Object.freeze(s.inst.state);
     const r = scorePrint(input);
@@ -548,13 +596,18 @@ describe('event log', () => {
       { kind: 'col', n: 0 },
       { kind: 'col', n: 1 },
     ]);
-    const colCells = r.events.filter((e): e is Extract<ScoreEvent, { t: 'cell' }> => e.t === 'cell' && e.ref.kind === 'col' && e.ref.n === 1);
+    const colCells = r.events.filter(
+      (e): e is Extract<ScoreEvent, { t: 'cell' }> => e.t === 'cell' && e.ref.kind === 'col' && e.ref.n === 1,
+    );
     expect(colCells.map((e) => e.i)).toEqual(lineCells('col', 1));
   });
 
   it('exact sequence for a small print', () => {
     // Row 4: 'ppxpplpp' with ink_pink, guillotine, poster, proof; piece 5.
-    const r = score(ROW4_BLIND_LEAD, ['ink_pink', 'guillotine', 'poster', 'proof'], { streak: 1, pieceSize: 5 });
+    const r = score(ROW4_BLIND_LEAD, ['ink_pink', 'guillotine', 'poster', 'proof'], {
+      streak: 1,
+      pieceSize: 5,
+    });
     const ref = { kind: 'row' as const, n: 4 };
     const expected: ScoreEvent[] = [{ t: 'line', ref }];
     let P = 0;
@@ -588,11 +641,19 @@ describe('event log', () => {
 
   it("'lx' event carries the factor, line and running P", () => {
     const r = score(CROSS_MIXED, ['ink_pink', 'column_press'], { streak: 2 });
-    expect(r.events.filter((e) => e.t === 'lx')).toEqual([{ t: 'lx', v: 2, src: 1, ref: { kind: 'col', n: 3 }, P: 460 }]);
+    expect(r.events.filter((e) => e.t === 'lx')).toEqual([
+      { t: 'lx', v: 2, src: 1, ref: { kind: 'col', n: 3 }, P: 460 },
+    ]);
   });
 
   it('builds the print context', () => {
-    const input = makeInput(FOUR_LINES, ['proof', { id: 'mirror', enabled: false }], { streak: 4, pieceSize: 7, sheetsLeft: 3, sheetsUsed: 17, printIndex: 5 });
+    const input = makeInput(FOUR_LINES, ['proof', { id: 'mirror', enabled: false }], {
+      streak: 4,
+      pieceSize: 7,
+      sheetsLeft: 3,
+      sheetsUsed: 17,
+      printIndex: 5,
+    });
     const r = scorePrint(input);
     expect(r.ctx).toEqual({
       lines: [
@@ -649,7 +710,15 @@ describe('event log', () => {
 
   it('buildPrintCtx counts empty slots against capacity', () => {
     const cells = board(ROW0_MIXED);
-    const base = { cells, lines: { rows: [0], cols: [] }, pieceSize: 1, streak: 1, sheetsLeft: 1, sheetsUsed: 1, printIndex: 0 };
+    const base = {
+      cells,
+      lines: { rows: [0], cols: [] },
+      pieceSize: 1,
+      streak: 1,
+      sheetsLeft: 1,
+      sheetsUsed: 1,
+      printIndex: 0,
+    };
     expect(buildPrintCtx({ ...base, slotCapacity: 5, ownedSlots: 0 }).emptySlots).toBe(5);
     expect(buildPrintCtx({ ...base, slotCapacity: 5, ownedSlots: 5 }).emptySlots).toBe(0);
     expect(buildPrintCtx({ ...base, slotCapacity: 5, ownedSlots: 6 }).emptySlots).toBe(0);
@@ -737,14 +806,16 @@ describe('phase rules', () => {
             for (const c of cellCtxs) {
               const rec = recorder(rv);
               def.cell(rec.api, c, st, {});
-              for (const call of rec.calls) expect(['prints', 'retrigger', 'random'], `${def.id} cell`).toContain(call);
+              for (const call of rec.calls)
+                expect(['prints', 'retrigger', 'random'], `${def.id} cell`).toContain(call);
             }
           }
           if (def.line) {
             for (const l of lineCtxs) {
               const rec = recorder(rv);
               def.line(rec.api, l, st, {});
-              for (const call of rec.calls) expect(['prints', 'linePrintsX'], `${def.id} line`).toContain(call);
+              for (const call of rec.calls)
+                expect(['prints', 'linePrintsX'], `${def.id} line`).toContain(call);
             }
           }
         }
@@ -753,14 +824,41 @@ describe('phase rules', () => {
       if (def.line) withLine.push(def.id);
     }
     // Pin the set of hooked plates so a new hook gets reviewed here.
-    expect(withCell.sort()).toEqual(['golden_type', 'ink_blue', 'ink_orange', 'ink_pink', 'ink_teal', 'ink_yellow']);
+    expect(withCell.sort()).toEqual([
+      'golden_type',
+      'ink_blue',
+      'ink_orange',
+      'ink_pink',
+      'ink_teal',
+      'ink_yellow',
+    ]);
     expect(withLine.sort()).toEqual(['archive', 'column_press', 'guillotine', 'margins']);
   });
 
   it('print hooks use only prints / mult / xmult and never touch random', () => {
     const ctxs: PrintCtx[] = [
-      buildPrintCtx({ cells: board(FOUR_LINES), lines: { rows: [0, 1], cols: [0, 1] }, pieceSize: 5, streak: 9, sheetsLeft: 2, sheetsUsed: 3, printIndex: 0, slotCapacity: 5, ownedSlots: 1 }),
-      buildPrintCtx({ cells: board(MONO3), lines: { rows: [0, 1, 2], cols: [] }, pieceSize: 1, streak: 0, sheetsLeft: 0, sheetsUsed: 20, printIndex: 4, slotCapacity: 5, ownedSlots: 5 }),
+      buildPrintCtx({
+        cells: board(FOUR_LINES),
+        lines: { rows: [0, 1], cols: [0, 1] },
+        pieceSize: 5,
+        streak: 9,
+        sheetsLeft: 2,
+        sheetsUsed: 3,
+        printIndex: 0,
+        slotCapacity: 5,
+        ownedSlots: 1,
+      }),
+      buildPrintCtx({
+        cells: board(MONO3),
+        lines: { rows: [0, 1, 2], cols: [] },
+        pieceSize: 1,
+        streak: 0,
+        sheetsLeft: 0,
+        sheetsUsed: 20,
+        printIndex: 4,
+        slotCapacity: 5,
+        ownedSlots: 5,
+      }),
     ];
     for (const def of MATRICES.values()) {
       if (!def.print) continue;
@@ -769,7 +867,8 @@ describe('phase rules', () => {
         for (const p of ctxs) {
           const rec = recorder(0);
           def.print(rec.api, p, st, { repeats: 2 });
-          for (const call of rec.calls) expect(['prints', 'mult', 'xmult'], `${def.id} print`).toContain(call);
+          for (const call of rec.calls)
+            expect(['prints', 'mult', 'xmult'], `${def.id} print`).toContain(call);
         }
       }
     }
@@ -778,8 +877,23 @@ describe('phase rules', () => {
   it('every MULT-affecting plate is a print-phase plate', () => {
     // Plates whose effect per GDD §8.2 is +/× MULT must hook `print`, not cell/line.
     const multPlates: MatrixId[] = [
-      'proof', 'roller', 'petit', 'numerator', 'first_impression', 'monotype', 'registration', 'journeyman', 'crossmark',
-      'clean_sheet', 'stencil', 'momentum', 'ink_well', 'gutenberg', 'hydraulic', 'golden_type', 'split_fountain',
+      'proof',
+      'roller',
+      'petit',
+      'numerator',
+      'first_impression',
+      'monotype',
+      'registration',
+      'journeyman',
+      'crossmark',
+      'clean_sheet',
+      'stencil',
+      'momentum',
+      'ink_well',
+      'gutenberg',
+      'hydraulic',
+      'golden_type',
+      'split_fountain',
     ];
     for (const id of multPlates) expect(matrixDef(id).print, id).toBeTypeOf('function');
   });
@@ -892,7 +1006,13 @@ function fold(events: readonly ScoreEvent[]): Folded {
   return { P, M, triggers };
 }
 
-const INK_PLATE: Partial<Record<MatrixId, number>> = { ink_pink: 0, ink_orange: 1, ink_yellow: 2, ink_teal: 3, ink_blue: 4 };
+const INK_PLATE: Partial<Record<MatrixId, number>> = {
+  ink_pink: 0,
+  ink_orange: 1,
+  ink_yellow: 2,
+  ink_teal: 3,
+  ink_blue: 4,
+};
 
 /** Straight-from-the-GDD scorer (no events) used as an oracle. */
 function reference(input: PrintInput): { prints: number; mult: number; total: number } {
@@ -905,7 +1025,10 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
     }
     return null;
   });
-  const refs = [...lines.rows.map((n) => ({ kind: 'row' as const, n })), ...lines.cols.map((n) => ({ kind: 'col' as const, n }))];
+  const refs = [
+    ...lines.rows.map((n) => ({ kind: 'row' as const, n })),
+    ...lines.cols.map((n) => ({ kind: 'col' as const, n })),
+  ];
   const L = refs.length;
   const repeats = slots.map(() => 0);
   const allInks = new Set<number>();
@@ -967,26 +1090,65 @@ function reference(input: PrintInput): { prints: number; mult: number; total: nu
     if (!e) return;
     const st = e.st;
     switch (e.id) {
-      case 'proof': M += 3; break;
-      case 'roller': if (L >= 2) M += 6; break;
-      case 'petit': if (input.pieceSize <= 3) M += 5; break;
-      case 'poster': if (input.pieceSize >= 5) P += 120; break;
-      case 'numerator': if (streak > 0) M += streak; break;
-      case 'scrap': P += st.stored ?? 0; break;
-      case 'first_impression': if (input.sheetsUsed <= 8) M *= 2; break;
-      case 'monotype': if (mono > 0) M *= pw(2, mono); break;
-      case 'registration': M += 2 * allInks.size; break;
-      case 'journeyman': M += st.mult ?? 1; break;
-      case 'crossmark': M += 3 * lines.rows.length * lines.cols.length; break;
-      case 'clean_sheet': if (clean && L >= 2) M *= 4; break;
-      case 'stencil': M *= 1 + 0.5 * Math.max(0, input.slotCapacity - slots.length); break;
-      case 'momentum': if (streak > 0) M *= 1 + 0.1 * streak; break;
-      case 'ink_well': M += st.mult ?? 0; break;
-      case 'gutenberg': M *= st.x ?? 1.5; break;
-      case 'hydraulic': if (L >= 3) M *= 3; break;
-      case 'golden_type': if ((repeats[s] as number) > 0) M *= pw(1.1, repeats[s] as number); break;
-      case 'split_fountain': if (rainbow > 0) M *= pw(1.5, rainbow); break;
-      default: break;
+      case 'proof':
+        M += 3;
+        break;
+      case 'roller':
+        if (L >= 2) M += 6;
+        break;
+      case 'petit':
+        if (input.pieceSize <= 3) M += 5;
+        break;
+      case 'poster':
+        if (input.pieceSize >= 5) P += 120;
+        break;
+      case 'numerator':
+        if (streak > 0) M += streak;
+        break;
+      case 'scrap':
+        P += st.stored ?? 0;
+        break;
+      case 'first_impression':
+        if (input.sheetsUsed <= 8) M *= 2;
+        break;
+      case 'monotype':
+        if (mono > 0) M *= pw(2, mono);
+        break;
+      case 'registration':
+        M += 2 * allInks.size;
+        break;
+      case 'journeyman':
+        M += st.mult ?? 1;
+        break;
+      case 'crossmark':
+        M += 3 * lines.rows.length * lines.cols.length;
+        break;
+      case 'clean_sheet':
+        if (clean && L >= 2) M *= 4;
+        break;
+      case 'stencil':
+        M *= 1 + 0.5 * Math.max(0, input.slotCapacity - slots.length);
+        break;
+      case 'momentum':
+        if (streak > 0) M *= 1 + 0.1 * streak;
+        break;
+      case 'ink_well':
+        M += st.mult ?? 0;
+        break;
+      case 'gutenberg':
+        M *= st.x ?? 1.5;
+        break;
+      case 'hydraulic':
+        if (L >= 3) M *= 3;
+        break;
+      case 'golden_type':
+        if ((repeats[s] as number) > 0) M *= pw(1.1, repeats[s] as number);
+        break;
+      case 'split_fountain':
+        if (rainbow > 0) M *= pw(1.5, rainbow);
+        break;
+      default:
+        break;
     }
   });
   return { prints: P, mult: M, total: Math.floor(P * M + 1e-9) };
@@ -1003,8 +1165,10 @@ function randomInput(rng: Rng, randomFn: () => number): PrintInput {
     const style = rng.next();
     const color = rng.int(5);
     for (const i of lineCells(kind, n)) {
-      if (style < 0.3) cells[i] = color; // monochrome attempt (crossing lines may overwrite)
-      else if ((cells[i] as number) === EMPTY || (cells[i] as number) === JAM) cells[i] = rng.chance(0.08) ? BLIND : rng.int(5);
+      if (style < 0.3)
+        cells[i] = color; // monochrome attempt (crossing lines may overwrite)
+      else if ((cells[i] as number) === EMPTY || (cells[i] as number) === JAM)
+        cells[i] = rng.chance(0.08) ? BLIND : rng.int(5);
     }
   };
   const nRows = rng.int(4);

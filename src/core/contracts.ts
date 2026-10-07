@@ -84,7 +84,6 @@ export function totalContracts(): number {
   return BALANCE.editions * BALANCE.contractsPerEdition;
 }
 
-
 export function modifierCount(edition: number): number {
   return edition >= BALANCE.doubleModifierFromEdition ? 2 : 1;
 }
@@ -181,8 +180,10 @@ export function contractBoard(seed: string, spec: ContractSpec): Cells {
       placed++;
     }
   }
-  /* c8 ignore next 2 */
   const full = findFullLines(cells);
+  // Defensive invariant check, unreachable by construction: a row or column holds at most
+  // one jam and two lead slugs (3 of 8 cells), so no line can start full.
+  /* c8 ignore if -- @preserve */
   if (full.rows.length > 0 || full.cols.length > 0) throw new Error('contractBoard produced a full line');
   return cells;
 }

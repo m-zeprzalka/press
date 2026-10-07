@@ -106,7 +106,13 @@ export function anyFits(rows: Rows, shapes: readonly Shape[]): boolean {
 }
 
 /** Places a shape, clears full lines and returns the cleared masks (mutates rows). */
-export function placeAndClear(rows: Rows, shape: Shape, x: number, y: number, rules: ClearRules = {}): LineMasks {
+export function placeAndClear(
+  rows: Rows,
+  shape: Shape,
+  x: number,
+  y: number,
+  rules: ClearRules = {},
+): LineMasks {
   placeInto(rows, shape, x, y);
   const masks = fullLines(rows, rules);
   if (masks.rowMask !== 0 || masks.colMask !== 0) clearInto(rows, masks);

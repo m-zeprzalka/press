@@ -162,7 +162,12 @@ export function onRunStarted(meta: MetaState): void {
  * Applies the events produced by one engine action. `run` is the state *after* the action.
  * Mutates `meta` and returns newly earned achievements / unlocked plates.
  */
-export function applyRunEvents(meta: MetaState, run: Readonly<RunState>, events: readonly RunEvent[], now: number): MetaUpdate {
+export function applyRunEvents(
+  meta: MetaState,
+  run: Readonly<RunState>,
+  events: readonly RunEvent[],
+  now: number,
+): MetaUpdate {
   const out: MetaUpdate = { achievements: [], unlocks: [] };
   const st = meta.stats;
   for (const e of events) {
@@ -248,7 +253,8 @@ function recordDaily(meta: MetaState, run: Readonly<RunState>, out: MetaUpdate, 
   const first = rec.attempts === 0;
   rec.attempts++;
   const better =
-    run.totals.contractsWon > rec.contracts || (run.totals.contractsWon === rec.contracts && run.totals.score > rec.best);
+    run.totals.contractsWon > rec.contracts ||
+    (run.totals.contractsWon === rec.contracts && run.totals.score > rec.best);
   if (first || better) {
     rec.best = run.totals.score;
     rec.contracts = run.totals.contractsWon;
@@ -280,10 +286,13 @@ export function migrateMeta(raw: unknown): MetaState {
 
   const rs = isObj(raw.stats) ? raw.stats : {};
   const stats = meta.stats as unknown as Obj;
-  for (const [k, def] of Object.entries(stats)) if (typeof def === 'number' && isCount(rs[k])) stats[k] = rs[k];
-  if (typeof rs.lastDailyDate === 'string' && DATE_RE.test(rs.lastDailyDate)) meta.stats.lastDailyDate = rs.lastDailyDate;
+  for (const [k, def] of Object.entries(stats))
+    if (typeof def === 'number' && isCount(rs[k])) stats[k] = rs[k];
+  if (typeof rs.lastDailyDate === 'string' && DATE_RE.test(rs.lastDailyDate))
+    meta.stats.lastDailyDate = rs.lastDailyDate;
   if (isObj(rs.picks)) {
-    for (const [id, n] of Object.entries(rs.picks)) if (isMatrixId(id) && isCount(n)) meta.stats.picks[id] = n;
+    for (const [id, n] of Object.entries(rs.picks))
+      if (isMatrixId(id) && isCount(n)) meta.stats.picks[id] = n;
   }
 
   const ach = isObj(raw.achievements) ? raw.achievements : {};
@@ -314,6 +323,8 @@ export function migrateMeta(raw: unknown): MetaState {
 
   meta.tutorialDone = raw.tutorialDone === true;
   meta.freeContinueUsed = raw.freeContinueUsed === true;
-  meta.tipsSeen = Array.isArray(raw.tipsSeen) ? raw.tipsSeen.filter((t): t is string => typeof t === 'string') : [];
+  meta.tipsSeen = Array.isArray(raw.tipsSeen)
+    ? raw.tipsSeen.filter((t): t is string => typeof t === 'string')
+    : [];
   return meta;
 }

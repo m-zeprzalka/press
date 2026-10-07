@@ -97,7 +97,8 @@ export class Rng {
     }
     // Floating point edge: return the last positive weight.
     for (let i = weights.length - 1; i >= 0; i--) if ((weights[i] as number) > 0) return i;
-    /* c8 ignore next */
+    // Unreachable: total > 0 means some weight is > 0, so the scan above always returns.
+    /* c8 ignore next -- @preserve */
     return 0;
   }
 

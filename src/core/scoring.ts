@@ -11,7 +11,7 @@
  */
 import { BALANCE } from './config/balance';
 import { BOARD_SIZE } from './pieces';
-import { clearLines, isBoardClean, isInk, lineCells, type Cells, type FullLines, type Ink } from './board';
+import { EMPTY, JAM, clearLines, countKind, isBoardClean, isInk, lineCells, type Cells, type FullLines, type Ink } from './board';
 import {
   matrixDef,
   type CellCtx,
@@ -137,6 +137,7 @@ export function buildPrintCtx(input: {
     sheetsUsed: input.sheetsUsed,
     printIndex: input.printIndex,
     boardCleanAfter: isBoardClean(after),
+    cellsAfter: countKind(after, (v) => v !== EMPTY && v !== JAM),
     emptySlots: Math.max(0, input.slotCapacity - input.ownedSlots),
   };
 }
@@ -181,7 +182,7 @@ export function scorePrint(input: PrintInput): PrintResult {
   let retriggers = 0;
 
   const bump = () => {
-    if (typeof src === 'number') triggers[src] = (triggers[src] ?? 0) + 1;
+    if (typeof src === 'number') triggers[src] = (triggers[src] as number) + 1;
   };
   const requireMultPhase = () => {
     if (phase !== 'print' && phase !== 'base') {
@@ -235,8 +236,7 @@ export function scorePrint(input: PrintInput): PrintResult {
     for (let i = 0; i < resolved.length; i++) {
       const r = resolved[i];
       const hook = r?.def[stage] as
-        | ((a: ScoreApi, x: typeof arg, st: MatrixState, tmp: MatrixState) => void)
-        | undefined;
+        ((a: ScoreApi, x: typeof arg, st: MatrixState, tmp: MatrixState) => void) | undefined;
       if (!r || !hook) continue;
       src = i;
       hook(api, arg, r.state, scratch[i] as MatrixState);

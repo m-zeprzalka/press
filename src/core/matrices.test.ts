@@ -41,7 +41,15 @@ const GDD_COMMON: MatrixId[] = [
   'first_impression',
 ];
 const GDD_RARE_START: MatrixId[] = ['column_press', 'monotype', 'journeyman', 'archive', 'ink_well'];
-const GDD_RARE_UNLOCK: MatrixId[] = ['registration', 'crossmark', 'type_case', 'clean_sheet', 'stencil', 'momentum', 'conveyor'];
+const GDD_RARE_UNLOCK: MatrixId[] = [
+  'registration',
+  'crossmark',
+  'type_case',
+  'clean_sheet',
+  'stencil',
+  'momentum',
+  'conveyor',
+];
 const GDD_LEGENDARY_START: MatrixId[] = ['gutenberg', 'hydraulic'];
 const GDD_LEGENDARY_UNLOCK: MatrixId[] = ['golden_type', 'mirror', 'split_fountain'];
 const GDD_STARTERS = [...GDD_COMMON, ...GDD_RARE_START, ...GDD_LEGENDARY_START];
@@ -99,10 +107,17 @@ describe('MATRIX_IDS / MATRICES', () => {
   it('rarities match GDD §8.2', () => {
     for (const id of GDD_COMMON) expect(matrixDef(id).rarity, id).toBe('common');
     for (const id of [...GDD_RARE_START, ...GDD_RARE_UNLOCK]) expect(matrixDef(id).rarity, id).toBe('rare');
-    for (const id of [...GDD_LEGENDARY_START, ...GDD_LEGENDARY_UNLOCK]) expect(matrixDef(id).rarity, id).toBe('legendary');
-    expect(sorted([...GDD_COMMON, ...GDD_RARE_START, ...GDD_RARE_UNLOCK, ...GDD_LEGENDARY_START, ...GDD_LEGENDARY_UNLOCK])).toEqual(
-      sorted(MATRIX_IDS),
-    );
+    for (const id of [...GDD_LEGENDARY_START, ...GDD_LEGENDARY_UNLOCK])
+      expect(matrixDef(id).rarity, id).toBe('legendary');
+    expect(
+      sorted([
+        ...GDD_COMMON,
+        ...GDD_RARE_START,
+        ...GDD_RARE_UNLOCK,
+        ...GDD_LEGENDARY_START,
+        ...GDD_LEGENDARY_UNLOCK,
+      ]),
+    ).toEqual(sorted(MATRIX_IDS));
   });
 
   it('MATRICES holds exactly one def per id, keyed by its own id', () => {
@@ -137,7 +152,8 @@ describe('starter pool (GDD §8.1, §8.2, §10.2)', () => {
   });
 
   it('every common plate is a starter', () => {
-    for (const id of MATRIX_IDS) if (matrixDef(id).rarity === 'common') expect(STARTER_MATRICES, id).toContain(id);
+    for (const id of MATRIX_IDS)
+      if (matrixDef(id).rarity === 'common') expect(STARTER_MATRICES, id).toContain(id);
   });
 
   it('starter flag agrees with STARTER_MATRICES', () => {
@@ -152,7 +168,8 @@ describe('starter pool (GDD §8.1, §8.2, §10.2)', () => {
       scaling: ['journeyman', 'archive', 'gutenberg'],
       geometry: ['margins', 'column_press'],
     };
-    for (const [name, ids] of Object.entries(builds)) for (const id of ids) expect(STARTER_MATRICES, `${name}: ${id}`).toContain(id);
+    for (const [name, ids] of Object.entries(builds))
+      for (const id of ids) expect(STARTER_MATRICES, `${name}: ${id}`).toContain(id);
   });
 });
 
@@ -238,7 +255,8 @@ describe('params()', () => {
   };
 
   it('fresh instances show the GDD numbers', () => {
-    for (const id of MATRIX_IDS) expect(matrixDef(id).params(createInstance(id, 1).state), id).toEqual(EXPECTED[id]);
+    for (const id of MATRIX_IDS)
+      expect(matrixDef(id).params(createInstance(id, 1).state), id).toEqual(EXPECTED[id]);
   });
 
   it('every plate returns finite numbers for fresh, empty and grown states', () => {
@@ -306,7 +324,22 @@ describe('createInstance / isMatrixId', () => {
 
   it('isMatrixId accepts exactly the catalogue ids', () => {
     for (const id of MATRIX_IDS) expect(isMatrixId(id)).toBe(true);
-    for (const v of ['', 'Proof', 'proof ', 'ink', 'toString', 'constructor', '__proto__', 'hasOwnProperty', 42, null, undefined, {}, ['proof'], true]) {
+    for (const v of [
+      '',
+      'Proof',
+      'proof ',
+      'ink',
+      'toString',
+      'constructor',
+      '__proto__',
+      'hasOwnProperty',
+      42,
+      null,
+      undefined,
+      {},
+      ['proof'],
+      true,
+    ]) {
       expect(isMatrixId(v), String(v)).toBe(false);
     }
   });
@@ -316,7 +349,8 @@ describe('passive effects', () => {
   it('ink plates have their colour affinity (pink…blue)', () => {
     const inkPlates = INK_IDS.map((k) => `ink_${k}` as MatrixId);
     inkPlates.forEach((id, ink) => expect(matrixDef(id).inkAffinity).toBe(ink));
-    for (const id of MATRIX_IDS) if (!inkPlates.includes(id)) expect(matrixDef(id).inkAffinity, id).toBeUndefined();
+    for (const id of MATRIX_IDS)
+      if (!inkPlates.includes(id)) expect(matrixDef(id).inkAffinity, id).toBeUndefined();
   });
 
   it('ream +3 sheets, type case reserve 1, conveyor +1 grace / 50% carry — and nobody else', () => {
@@ -342,7 +376,12 @@ describe('passive effects', () => {
     // Passive plates have no scoring or lifecycle hooks at all.
     for (const id of none) {
       const d = matrixDef(id);
-      expect([d.cell, d.line, d.print, d.afterPrint, d.afterPlace, d.afterContract, d.onContractStart].every((h) => h === undefined), id).toBe(true);
+      expect(
+        [d.cell, d.line, d.print, d.afterPrint, d.afterPlace, d.afterContract, d.onContractStart].every(
+          (h) => h === undefined,
+        ),
+        id,
+      ).toBe(true);
     }
   });
 });

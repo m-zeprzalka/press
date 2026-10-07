@@ -351,7 +351,12 @@ export class RunEngine {
     if (this.s.reserve && this.reserveSlots() > 0 && fits(rows, shapeById(this.s.reserve.shape))) return true;
     // Type Case escape: stashing the last tray piece into an empty case deals a fresh (fair) tray.
     const trayLeft = this.s.tray.filter((p) => p !== null).length;
-    if (trayLeft === 1 && this.s.reserve === null && this.s.contract.sheetsLeft > 0 && this.canStash(this.s.tray.findIndex((p) => p !== null))) {
+    if (
+      trayLeft === 1 &&
+      this.s.reserve === null &&
+      this.s.contract.sheetsLeft > 0 &&
+      this.canStash(this.s.tray.findIndex((p) => p !== null))
+    ) {
       return true;
     }
     return false;
@@ -359,7 +364,11 @@ export class RunEngine {
 
   canStash(slot: number): boolean {
     return (
-      this.s.phase === 'playing' && this.reserveSlots() > 0 && !this.s.stashUsed && this.s.tray[slot] !== null && this.s.tray[slot] !== undefined
+      this.s.phase === 'playing' &&
+      this.reserveSlots() > 0 &&
+      !this.s.stashUsed &&
+      this.s.tray[slot] !== null &&
+      this.s.tray[slot] !== undefined
     );
   }
 
@@ -590,7 +599,8 @@ export class RunEngine {
   private dominantInk(): number | null {
     const arr = this.s.contract.inkPrinted;
     let best: number | null = null;
-    for (let k = 0; k < arr.length; k++) if ((arr[k] as number) > 0 && (best === null || (arr[k] as number) > (arr[best] as number))) best = k;
+    for (let k = 0; k < arr.length; k++)
+      if ((arr[k] as number) > 0 && (best === null || (arr[k] as number) > (arr[best] as number))) best = k;
     return best;
   }
 
@@ -631,7 +641,14 @@ export class RunEngine {
       events.push({ type: 'victory' });
       return events;
     }
-    s.offer = { index: s.contractIndex, cards: [], cardCount: cards, guaranteeRare, rerolls: 0, adRerollsHere: 0 };
+    s.offer = {
+      index: s.contractIndex,
+      cards: [],
+      cardCount: cards,
+      guaranteeRare,
+      rerolls: 0,
+      adRerollsHere: 0,
+    };
     s.offer.cards = this.drawOffer(s.offer);
     s.phase = 'offer';
     events.push({ type: 'offer', offer: clone(s.offer) });
@@ -642,7 +659,10 @@ export class RunEngine {
   private earlyBonus(): { cards: number; guaranteeRare: boolean } {
     const c = this.s.contract;
     const share = c.sheetsUsed / c.spec.sheets;
-    return { cards: share <= BALANCE.earlyShare4Cards ? 4 : 3, guaranteeRare: share <= BALANCE.earlyShareRare };
+    return {
+      cards: share <= BALANCE.earlyShare4Cards ? 4 : 3,
+      guaranteeRare: share <= BALANCE.earlyShareRare,
+    };
   }
 
   private lose(reason: LossReason): RunEvent[] {
@@ -674,13 +694,18 @@ export class RunEngine {
     const take = (r: Rarity): MatrixId | null => {
       // Fall back to lower rarities when a pool is exhausted.
       for (let k = order.indexOf(r); k >= 0; k--) {
-        const list = byRarity[order[k] as Rarity].filter((id) => !cards.includes(id) && !(hasInk && isInkPlate(id)));
+        const list = byRarity[order[k] as Rarity].filter(
+          (id) => !cards.includes(id) && !(hasInk && isInkPlate(id)),
+        );
         if (list.length > 0) return rng.pick(list);
       }
       return null;
     };
     for (let n = 0; n < offer.cardCount; n++) {
-      const needRare = offer.guaranteeRare && n === offer.cardCount - 1 && !cards.some((id) => matrixDef(id).rarity !== 'common');
+      const needRare =
+        offer.guaranteeRare &&
+        n === offer.cardCount - 1 &&
+        !cards.some((id) => matrixDef(id).rarity !== 'common');
       let rarity: Rarity;
       if (needRare) {
         rarity = rng.weightedIndex([0, weights.rare, weights.legendary]) === 2 ? 'legendary' : 'rare';
@@ -782,7 +807,8 @@ export class RunEngine {
 
   movePlate(from: number, to: number): RunEvent[] {
     const s = this.s;
-    if (from < 0 || from >= s.plates.length || to < 0 || to >= s.plates.length) throw new RunError('Bad slot');
+    if (from < 0 || from >= s.plates.length || to < 0 || to >= s.plates.length)
+      throw new RunError('Bad slot');
     if (s.phase === 'over') throw new RunError('Run over');
     const [p] = s.plates.splice(from, 1);
     s.plates.splice(to, 0, p as MatrixInstance);
@@ -831,7 +857,7 @@ export class RunEngine {
     }
     const events: RunEvent[] = [{ type: 'continued', reason, clearedCells, sheets }];
     events.push(...this.dealIfNeeded());
-    /* c8 ignore next */
+    // Reachable after a quota loss: the extra sheets do not help if the leftover tray cannot be placed.
     if (!this.anyMoveAvailable()) events.push(...this.lose('jam'));
     return events;
   }
@@ -850,7 +876,10 @@ export class RunEngine {
       return { k: x, n };
     });
     const pick = (arr: Array<{ k: number; n: number }>, count: number) =>
-      [...arr].sort((a, b) => b.n - a.n || a.k - b.k).slice(0, count).map((e) => e.k);
+      [...arr]
+        .sort((a, b) => b.n - a.n || a.k - b.k)
+        .slice(0, count)
+        .map((e) => e.k);
     const rows = pick(rowScore, BALANCE.continueClearRows);
     const cols = pick(colScore, BALANCE.continueClearCols);
     const out = new Set<number>();
@@ -878,7 +907,14 @@ export class RunEngine {
     s.endless = true;
     // The offer after job 24 carries that job's early-finish bonus like any other.
     const { cards, guaranteeRare } = this.earlyBonus();
-    s.offer = { index: s.contractIndex, cards: [], cardCount: cards, guaranteeRare, rerolls: 0, adRerollsHere: 0 };
+    s.offer = {
+      index: s.contractIndex,
+      cards: [],
+      cardCount: cards,
+      guaranteeRare,
+      rerolls: 0,
+      adRerollsHere: 0,
+    };
     s.offer.cards = this.drawOffer(s.offer);
     s.phase = 'offer';
     return [{ type: 'offer', offer: clone(s.offer) }];

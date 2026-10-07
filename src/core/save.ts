@@ -56,13 +56,17 @@ export function encodeSave(value: unknown, seq: number): string {
   return JSON.stringify(env);
 }
 
-export function decodeSave<T>(raw: string | null | undefined, validate: (v: unknown) => v is T): Loaded<T> | null {
+export function decodeSave<T>(
+  raw: string | null | undefined,
+  validate: (v: unknown) => v is T,
+): Loaded<T> | null {
   if (!raw) return null;
   try {
     const env = JSON.parse(raw) as Partial<SaveEnvelope>;
     if (!env || typeof env !== 'object') return null;
     if (env.schema !== SAVE_SCHEMA) return null;
-    if (typeof env.payload !== 'string' || typeof env.seq !== 'number' || typeof env.crc !== 'number') return null;
+    if (typeof env.payload !== 'string' || typeof env.seq !== 'number' || typeof env.crc !== 'number')
+      return null;
     if (crc32(env.payload) !== env.crc) return null;
     const value: unknown = JSON.parse(env.payload);
     if (!validate(value)) return null;
@@ -92,7 +96,9 @@ const isPlateId = (v: unknown): boolean => typeof v === 'string' && MATRICES.has
 
 function isPiece(v: unknown): boolean {
   if (v === null) return true;
-  return isObj(v) && isNum(v.uid) && typeof v.shape === 'string' && hasShape(v.shape) && isInt(v.ink, 0, BLIND);
+  return (
+    isObj(v) && isNum(v.uid) && typeof v.shape === 'string' && hasShape(v.shape) && isInt(v.ink, 0, BLIND)
+  );
 }
 
 function isModifier(v: unknown): boolean {
@@ -116,7 +122,17 @@ function isSpec(v: unknown): boolean {
   );
 }
 
-const CONTRACT_NUMS = ['progress', 'sheetsLeft', 'sheetsGranted', 'sheetsUsed', 'printIndex', 'streak', 'dry', 'trayIndex', 'bestPrint'];
+const CONTRACT_NUMS = [
+  'progress',
+  'sheetsLeft',
+  'sheetsGranted',
+  'sheetsUsed',
+  'printIndex',
+  'streak',
+  'dry',
+  'trayIndex',
+  'bestPrint',
+];
 
 function isContract(v: unknown): boolean {
   return (
@@ -153,7 +169,16 @@ function isContractRecord(v: unknown): boolean {
   );
 }
 
-const TOTALS_NUMS = ['score', 'bestPrint', 'lines', 'prints', 'placements', 'contractsWon', 'maxStreak', 'maxLines'];
+const TOTALS_NUMS = [
+  'score',
+  'bestPrint',
+  'lines',
+  'prints',
+  'placements',
+  'contractsWon',
+  'maxStreak',
+  'maxLines',
+];
 
 function isTotals(v: unknown): boolean {
   return isObj(v) && nums(v, TOTALS_NUMS) && isArr(v.history) && v.history.every(isContractRecord);
@@ -173,7 +198,11 @@ export function isRunState(v: unknown): v is RunState {
   if (s.dailyDate !== null && typeof s.dailyDate !== 'string') return false;
   if (!PHASES.includes(s.phase)) return false;
   if (!isInt(s.contractIndex, 0) || !isNum(s.nextUid) || !isInt(s.traySize, 1, 3)) return false;
-  if (!isObj(s.editionModifiers) || !Object.values(s.editionModifiers).every((m) => isArr(m) && m.every(isModifier))) return false;
+  if (
+    !isObj(s.editionModifiers) ||
+    !Object.values(s.editionModifiers).every((m) => isArr(m) && m.every(isModifier))
+  )
+    return false;
   if (!isContract(s.contract)) return false;
   if (!isArr(s.cells) || s.cells.length !== 64 || !s.cells.every((c) => isInt(c, EMPTY, JAM))) return false;
   if (!isArr(s.tray) || s.tray.length !== 3 || !s.tray.every(isPiece)) return false;
