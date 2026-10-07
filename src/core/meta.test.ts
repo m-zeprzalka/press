@@ -319,6 +319,7 @@ function printed(o: PrintOpts = {}): RunEvent {
     sheetsUsed: 10,
     printIndex: 0,
     boardCleanAfter: o.clean ?? false,
+    cellsAfter: o.clean ? 0 : 8,
     emptySlots: 5,
   };
   return {

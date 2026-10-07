@@ -675,6 +675,7 @@ describe('event log', () => {
       sheetsUsed: 17,
       printIndex: 5,
       boardCleanAfter: true,
+      cellsAfter: 0,
       emptySlots: 3,
     } satisfies PrintCtx);
   });

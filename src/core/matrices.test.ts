@@ -85,6 +85,7 @@ function printCtx(over: Partial<PrintCtx> = {}): PrintCtx {
     sheetsUsed: 10,
     printIndex: 0,
     boardCleanAfter: false,
+    cellsAfter: over.boardCleanAfter ? 0 : 8,
     emptySlots: 0,
     ...over,
   };
