@@ -224,6 +224,8 @@ export class RackView extends Container {
 
   endDrag(): void {
     this.dragging = null;
+    // The 90 ms gap-preview tweens must not keep moving cards after the final layout.
+    for (const c of this.cards) this.animator.cancel(c);
     this.redraw();
   }
 

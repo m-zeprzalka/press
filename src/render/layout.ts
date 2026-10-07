@@ -125,7 +125,9 @@ function portraitLayout(inp: LayoutInput, usableW: number, usableH: number, tooS
     );
   };
   const boardFor = (t: number) => Math.min(colW, usableH - fixedFor(t));
-  let tier = usableH >= 708 ? 0 : 1;
+  // Keep the full status row (sheets + streak) while the board still gets 36 px cells: most
+  // phones lose ~70 dp to system bars, and the compact HUD is a last resort.
+  let tier = Math.floor(boardFor(0) / 8) >= 36 ? 0 : 1;
   if (tier === 1 && Math.floor(boardFor(1) / 8) < 38) tier = 2;
   if (tier === 2 && Math.floor(boardFor(2) / 8) < BANDS.minCell) tier = 3;
   if (usableH < 580) tier = 4;

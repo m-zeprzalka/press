@@ -227,6 +227,16 @@ export class GameController {
     this.scene.resize(host.clientWidth, host.clientHeight);
     this.placeHudButtons();
     if (this.engine) this.presenter.syncAll(this.engine);
+    // GDD §17: a window too small to play (split screen, tiny freeform) pauses with a hint.
+    if (
+      this.scene.layout?.tooSmall &&
+      this.inGame &&
+      this.engine?.state.phase === 'playing' &&
+      !this.ui.has('pause')
+    ) {
+      this.openPause();
+      toast(t('window.too_small'), 4000);
+    }
   }
 
   // ================================================================== title & menus

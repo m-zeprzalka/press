@@ -1,7 +1,7 @@
 /**
  * Gameplay scene: owns the Pixi application and composes board, tray, HUD, rack, FX and drag layers.
  */
-import { Application, Container, TilingSprite } from 'pixi.js';
+import { Application, Container, Ticker, TilingSprite } from 'pixi.js';
 import { PAPER } from '../theme';
 import { Animator } from './animator';
 import type { GameAssets } from './assets';
@@ -59,7 +59,12 @@ export class GameScene {
     opts: SceneOptions,
   ) {
     this.tier = opts.tier ?? detectTier();
-    this.animator = new Animator(() => app.renderer.render(app.stage));
+    this.animator = new Animator(() => {
+      Ticker.system.update();
+      app.renderer.render(app.stage);
+    });
+    // Pixi rebuilds GPU resources after a context restore, but nothing would redraw on demand.
+    app.canvas.addEventListener('webglcontextrestored', () => this.animator.request());
     this.background = new TilingSprite({ texture: assets.paper, width: 10, height: 10 });
     this.board = new BoardView(assets, this.animator, opts.style);
     this.tray = new TrayView(assets, this.animator, opts.style);
@@ -95,6 +100,10 @@ export class GameScene {
       powerPreference: 'high-performance',
     });
     app.ticker.stop();
+    // Pixi's system ticker (texture GC scheduler) would run rAF forever and defeat render-on-demand:
+    // it only advances when we render a frame (see the Animator callback below).
+    Ticker.system.autoStart = false;
+    Ticker.system.stop();
     host.appendChild(app.canvas);
     app.canvas.style.display = 'block';
     app.canvas.style.touchAction = 'none';
@@ -117,7 +126,8 @@ export class GameScene {
   }
 
   resize(width: number, height: number): GameLayout {
-    this.app.renderer.resize(width, height);
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    this.app.renderer.resize(width, height, Math.min(dpr, TIER_SETTINGS[this.tier].maxResolution));
     this.background.width = width;
     this.background.height = height;
     const l = computeLayout({ width, height, insets: this.insets, hasReserve: this.hasReserve });

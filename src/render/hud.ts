@@ -157,15 +157,17 @@ export class HudView extends Container {
       ])
         o.visible = true;
     } else {
-      // Compact: sheets value under the quota label, streak drops at the right of the header.
+      // Compact: sheets at the left end of the counter row, streak at the right end; the
+      // PRINTS × MULT boxes narrow to leave room (boxWidth), so nothing overlaps.
       this.sheetsLabel.visible = false;
       this.sheetsMeter.visible = false;
       this.streakLabel.visible = false;
+      const cy = r.counter.y + r.counter.h / 2;
       this.sheetsValue.anchor.set(0, 0.5);
-      this.sheetsValue.position.set(r.quota.x, r.quota.y + r.quota.h + 2);
+      this.sheetsValue.position.set(r.counter.x, cy);
       this.streakValue.anchor.set(1, 0.5);
-      this.streakValue.position.set(r.counter.x + r.counter.w, r.counter.y - 4);
-      this.drops.position.set(r.counter.x + r.counter.w, r.counter.y + 8);
+      this.streakValue.position.set(r.counter.x + r.counter.w, cy - 9);
+      this.drops.position.set(r.counter.x + r.counter.w, cy + 11);
     }
     this.drawSheets();
     this.drawStreak();
@@ -173,10 +175,16 @@ export class HudView extends Container {
     this.animator.request();
   }
 
+  /** Width kept free at each end of the counter row for sheets / streak in the compact HUD. */
+  private boxWidth(rowW: number): number {
+    const side = this.rects?.status ? 0 : 58;
+    return Math.min(150, (rowW - 40 - 2 * side) / 2);
+  }
+
   private layoutCounter(): void {
     const r = this.rects?.counter;
     if (!r) return;
-    const boxW = Math.min(150, (r.w - 40) / 2);
+    const boxW = this.boxWidth(r.w);
     const boxH = Math.min(42, r.h - 4);
     const cx = r.x + r.w / 2;
     const y = r.y + (r.h - boxH) / 2;
@@ -204,7 +212,7 @@ export class HudView extends Container {
   private fitCounterText(): void {
     const r = this.rects?.counter;
     if (!r) return;
-    const boxW = Math.min(150, (r.w - 40) / 2);
+    const boxW = this.boxWidth(r.w);
     for (const t of [this.printsValue, this.multValue]) {
       t.scale.set(1);
       const max = boxW - 18;

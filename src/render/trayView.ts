@@ -57,6 +57,11 @@ export class TrayView extends Container {
     this.trayCell = trayCell;
     const pieces = this.slots.map((s) => s.piece);
     const reservePiece = this.reserveSlot?.piece ?? null;
+    // Free the old slot graphics (relayout runs on every resize); piece views are re-attached.
+    for (const s of [...this.slots, ...(this.reserveSlot ? [this.reserveSlot] : [])]) {
+      s.frame.destroy();
+      s.note.destroy();
+    }
     this.removeChildren();
     this.slots = slots.map((r) => this.makeSlot(r));
     this.reserveSlot = reserve ? this.makeSlot(reserve) : null;

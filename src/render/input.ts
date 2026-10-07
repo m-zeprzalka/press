@@ -335,6 +335,14 @@ export class InputController {
   private onTapModeDown(slot: SlotRef | null, x: number, y: number): void {
     const scene = this.scene;
     if (slot !== null) {
+      const cur = this.tapSel;
+      // Tap mode's "drop on the Type Case": selected tray piece + tap on the case = stash.
+      if (slot === 'reserve' && cur && typeof cur.slot === 'number' && this.cb.canStash(cur.slot)) {
+        this.setTapSel(null);
+        this.cb.stash(cur.slot);
+        this.cb.feedback('select');
+        return;
+      }
       if (slot === 'reserve' && !this.cb.reserveUsable()) return;
       if (!this.cb.pieceAt(slot)) return;
       const same = this.tapSel?.slot === slot;
@@ -380,7 +388,7 @@ export class InputController {
   private setTapSel(sel: { slot: SlotRef; ghost: GridPos | null } | null): void {
     this.tapSel = sel;
     this.scene.tray.setSelected(sel ? sel.slot : null);
-    if (!sel) this.scene.board.hideGhost();
+    if (!sel?.ghost) this.scene.board.hideGhost();
     this.cb.selectionChanged(sel);
   }
 

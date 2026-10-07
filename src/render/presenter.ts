@@ -278,7 +278,9 @@ export class Presenter {
   private playCounter(events: readonly ScoreEvent[], P: number, M: number, total: number): void {
     const token = ++this.playToken;
     const steps = buildSteps(events);
-    const budget = BUDGET[this.hooks.speed()];
+    const speed = this.hooks.speed();
+    // GDD §15: Reduce motion also means fast counters.
+    const budget = BUDGET[speed === 'normal' && this.hooks.reduceMotion() ? 'fast' : speed];
     const per = steps.length ? Math.max(16, Math.min(120, budget / steps.length)) : 0;
     const scene = this.scene;
     // MULT starts at the base value (lines + streak + single-ink) so it never reads "× 0".
